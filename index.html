@@ -71,7 +71,7 @@ mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weigh
 .em{font-size:11px;margin-top:3px}.em.ok{color:#7fe07a}.em.err{color:#ff8a80}.em.pend{color:var(--amb)}
 #emBanner{display:none;margin:4px 0;padding:8px;border-radius:8px;background:#ff3b2f;color:#fff;font-weight:800;font-size:12px;text-align:center;cursor:pointer;animation:bl 1.6s infinite;font-family:"Segoe UI",Roboto,sans-serif}
 .em button{background:#ffb43a;color:#1a1000;border:0;border-radius:6px;padding:4px 8px;font-weight:800;font-size:11px;margin-left:4px}
-</style><script src="https://accounts.google.com/gsi/client" async defer></script></head><body>
+</style><script src="https://accounts.google.com/gsi/client" async defer onerror="window.__gisFail=1"></script></head><body>
 <div class="radio"><div class="ant"></div><div class="knob"></div>
 <div class="body">
 <div class="plate"><div class="brand">BOONDOCK ECHO<small>LIVE RADIO TRANSCRIPTION</small></div><div class="tri"></div><span class="demo">DEMO</span><button class="gear" id="gearBtn" title="Settings" aria-label="Settings">⚙</button></div>
@@ -120,6 +120,20 @@ mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weigh
  <div class="note"><b>Data notice:</b> Your data is temporary and stored only in this browser. Download your data yourself; anything older than 7 days is deleted automatically.</div>
  <div class="foot">Audio clips are sent to ElevenLabs (speech-to-text) and text to Google Translate (fallback MyMemory) for processing. Boondock Echo DEMO · Not an official government website.</div>
 </div></div></div>
+<div id="gWarn" role="status" style="display:none;position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:9999;max-width:92vw;background:#ffd84a;color:#2a2200;border:2px solid #b38f00;border-radius:8px;padding:8px 34px 8px 12px;font:13px/1.35 system-ui,sans-serif;box-shadow:0 4px 14px #0006"><span id="gWarnT"></span><button id="gWarnX" aria-label="Dismiss" style="position:absolute;right:6px;top:4px;background:none;border:0;font-size:18px;cursor:pointer;color:#2a2200">×</button></div>
+<script>
+/* ---------- Fail-safe layer: Google/Drive/Gmail problems never stop the app ---------- */
+var __wT=null;
+function gWarn(msg){try{var b=document.getElementById("gWarn");if(!b)return;document.getElementById("gWarnT").textContent="⚠ "+msg;b.style.display="block";clearTimeout(__wT);__wT=setTimeout(function(){b.style.display="none";},12000);}catch(e){}}
+document.getElementById("gWarnX").onclick=function(){document.getElementById("gWarn").style.display="none";};
+function withTimeout(p,ms,label){return new Promise(function(res,rej){var t=setTimeout(function(){rej(new Error((label||"Request")+" timed out"));},ms);Promise.resolve(p).then(function(v){clearTimeout(t);res(v);},function(e){clearTimeout(t);rej(e);});});}
+function fetchT(url,opt,ms){opt=opt||{};var ac=typeof AbortController!=="undefined"?new AbortController():null;if(ac)opt.signal=ac.signal;
+ return withTimeout(fetch(url,opt),ms||30000,"Network request").catch(function(e){try{ac&&ac.abort();}catch(_){}throw e;});}
+function __isG(s){return /google|gsi|gapi|drive|gmail|oauth|token/i.test(String(s||""));}
+window.addEventListener("error",function(e){try{if(e&&e.target&&e.target!==window&&e.target.src&&/gsi\/client/.test(e.target.src)){window.__gisFail=1;gWarn("Google sign-in unavailable – emails queued, app running normally");return;}
+ gWarn(__isG((e.message||"")+(e.filename||""))?"Google not connected – emails queued, app running normally":"A background error was caught – app running normally");e.preventDefault&&e.preventDefault();}catch(_){}},true);
+window.addEventListener("unhandledrejection",function(e){try{var m=e&&e.reason&&(e.reason.message||String(e.reason));gWarn(__isG(m)?"Google request failed – emails queued, app running normally":"A background task failed – app running normally");e.preventDefault();}catch(_){}});
+</script>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -199,7 +213,7 @@ async function processClip(chunks,rate,t){const audio=toWav(chunks,rate);const d
  const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,session:sessionId,dur,audio,text:"",trans:"",dst:$("dst").value,dev:devGet(),status:"Transcribing…"};await put(c);renderClip(c);
  try{const r=await stt(audio);c.text=r.text||"";c.lang=r.lang;c.status=c.text?"":"(no speech recognised)";
   if(c.text&&c.dst){const sl=(c.lang||"").slice(0,2);if(sl!==c.dst)c.trans=await translate(c.text,c.dst,sl);}}catch(e){c.status="⚠ "+e.message;}
- c.kw=kwMatch((c.text||"")+"\n"+(c.trans||""));if(c.kw.length){kwHit(c.kw);if(localStorage.getItem("be_emon")!=="0")emEnqueue(c);}
+ c.kw=kwMatch((c.text||"")+"\n"+(c.trans||""));if(c.kw.length){try{kwHit(c.kw);}catch(e){}if(localStorage.getItem("be_emon")!=="0")emEnqueue(c).catch(e=>gWarn("Email queue problem – "+e.message));}
  await put(c);renderClip(c);driveEnqueue(c);}
 
 /* ---------- Audio engine / smart squelch ---------- */
@@ -259,16 +273,17 @@ function gdUI(){const on=localStorage.getItem("be_gd")==="1";$("gdLbl").textCont
  $("gdDisc").style.display=on?"":"none";$("gdAutoL").style.display=on?"":"none";$("gdAuto").checked=localStorage.getItem("be_gdauto")!=="0";
  $("gdInfo").textContent=gdQ.length?gdQ.length+" upload(s) queued":"";gdInd(!on?"off":gdNeedReconnect?"err":gdBusy?"up":"ok");}
 function gdInit(){if(gdClient)return true;if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
- gdClient=google.accounts.oauth2.initTokenClient({client_id:GD_CID,scope:GD_SCOPE,callback:r=>{const p=gdPending;gdPending=null;
-  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;gmailOK=google.accounts.oauth2.hasGrantedAllScopes(r,"https://www.googleapis.com/auth/gmail.send");gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);setTimeout(()=>{emRequeue();emKick();},0);},
-  error_callback:e=>{const p=gdPending;gdPending=null;p&&p.rej(new Error(e.type||"popup error"));}});return true;}
-function gdRequest(prompt){return new Promise((res,rej)=>{if(!gdInit())return rej(new Error("Google sign-in library not loaded"));gdPending={res,rej};gdClient.requestAccessToken({prompt});});}
+ try{gdClient=google.accounts.oauth2.initTokenClient({client_id:GD_CID,scope:GD_SCOPE,callback:r=>{const p=gdPending;gdPending=null;
+  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;try{gmailOK=google.accounts.oauth2.hasGrantedAllScopes(r,"https://www.googleapis.com/auth/gmail.send");}catch(e){gmailOK=/gmail\.send/.test(r.scope||"");}gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);setTimeout(()=>{emRequeue().then(emKick).catch(()=>{});},0);},
+  error_callback:e=>{const p=gdPending;gdPending=null;p&&p.rej(new Error(e&&e.type==="popup_closed"?"Google sign-in popup closed":e&&e.type==="popup_failed_to_open"?"Google sign-in popup blocked":(e&&e.type)||"popup error"));}});}catch(e){gdClient=null;return false;}return true;}
+function gdRequest(prompt){const p=new Promise((res,rej)=>{try{if(!gdInit())return rej(new Error(window.__gisFail?"Google sign-in script failed to load":"Google sign-in library not loaded"));if(gdPending)gdPending.rej(new Error("superseded"));gdPending={res,rej};gdClient.requestAccessToken({prompt});}catch(e){gdPending=null;rej(e);}});
+ return withTimeout(p,prompt===""?20000:120000,"Google sign-in").catch(e=>{gdPending=null;throw e;});}
 async function gdToken(){if(gdTok&&Date.now()<gdExp)return gdTok;try{return await gdRequest("");}catch(e){gdNeedReconnect=true;gdUI();setStatus('⚠ Google Drive session expired — open Settings and tap <b>Reconnect Drive</b>.');throw e;}}
-$("gdConn").onclick=()=>googleConnect();
-async function googleConnect(){try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google connected. Drive auto-save on"+(gmailOK?" · Gmail alerts ready.":" · ⚠ Gmail send permission not granted."));gdKick();emKick();}catch(e){setStatus("⚠ Google connect failed: "+esc(e.message));}gdUI();}
+$("gdConn").onclick=()=>{googleConnect().catch(()=>{});};
+async function googleConnect(){try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google connected. Drive auto-save on"+(gmailOK?" · Gmail alerts ready.":" · ⚠ Gmail send permission not granted."));gdKick();emKick();}catch(e){try{setStatus("⚠ Google connect failed: "+esc(e.message)+" — app running normally, saving locally.");}catch(_){}gWarn("Google not connected ("+e.message+") – emails queued, app running normally");}try{gdUI();emBanner();}catch(_){}}
 $("gdDisc").onclick=()=>{if(gdTok&&window.google)try{google.accounts.oauth2.revoke(gdTok,()=>{});}catch(e){}gdTok=null;gdExp=0;gdNeedReconnect=false;localStorage.removeItem("be_gd");gmailOK=false;gdUI();setStatus("Google Drive disconnected.");};
 $("gdAuto").onchange=()=>{localStorage.setItem("be_gdauto",$("gdAuto").checked?"1":"0");gdKick();};
-async function gdFetch(url,opt={}){const t=await gdToken();opt.headers=Object.assign({},opt.headers,{Authorization:"Bearer "+t});const r=await fetch(url,opt);
+async function gdFetch(url,opt={}){const t=await gdToken();opt.headers=Object.assign({},opt.headers,{Authorization:"Bearer "+t});const r=await fetchT(url,opt,45000);
  if(r.status===401){gdTok=null;throw new Error("401");}if(!r.ok)throw new Error("Drive "+r.status+": "+(await r.text()).slice(0,120));return r.json();}
 const qs=s=>s.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
 async function gdFolder(name,parent){const k=(parent||"root")+"/"+name;if(gdFolders[k])return gdFolders[k];
@@ -293,11 +308,13 @@ async function gdOne(c){const d=new Date(c.t),day=ymd(d),sess=c.session||("S-"+d
  if(gdCsv[sess])await gdFetch(`https://www.googleapis.com/upload/drive/v3/files/${gdCsv[sess]}?uploadType=media&fields=id`,{method:"PATCH",headers:{"Content-Type":"text/csv"},body:cb});
  else gdCsv[sess]=await gdUpload("session.csv",sf,cb,"text/csv");
  c.drive=true;await put(c);renderClip(c);}
-function driveEnqueue(c){if(localStorage.getItem("be_gd")!=="1"||localStorage.getItem("be_gdauto")==="0")return;if(!gdQ.find(x=>x.id===c.id))gdQ.push(c);gdKick();}
-async function gdKick(){if(gdBusy||!gdQ.length||gdNeedReconnect||localStorage.getItem("be_gdauto")==="0")return gdUI();gdBusy=true;gdUI();let fails=0;
- while(gdQ.length&&!gdNeedReconnect){const c=gdQ[0];try{await gdOne(c);gdQ.shift();fails=0;gdUI();}catch(e){if(gdNeedReconnect)break;fails++;gdInd("err");if(fails>5){setStatus("⚠ Drive upload failing: "+esc(e.message)+" — will retry.");fails=0;await new Promise(r=>setTimeout(r,30000));}else await new Promise(r=>setTimeout(r,2000*fails));}}
+function driveEnqueue(c){try{driveEnqueue0(c);}catch(e){gWarn("Drive upload failed – saved locally");}}
+function driveEnqueue0(c){if(localStorage.getItem("be_gd")!=="1"||localStorage.getItem("be_gdauto")==="0")return;if(!gdQ.find(x=>x.id===c.id))gdQ.push(c);gdKick().catch(()=>{});}
+async function gdKick(){try{return await gdKick0();}catch(e){gdBusy=false;gWarn("Drive upload failed – saved locally");try{gdUI();}catch(_){}}}
+async function gdKick0(){if(gdBusy||!gdQ.length||gdNeedReconnect||localStorage.getItem("be_gdauto")==="0")return gdUI();gdBusy=true;gdUI();let fails=0;
+ while(gdQ.length&&!gdNeedReconnect){const c=gdQ[0];try{await gdOne(c);gdQ.shift();fails=0;gdUI();}catch(e){if(gdNeedReconnect){gWarn("Google not connected – emails queued, clips saved locally, app running normally");break;}fails++;gdInd("err");if(fails===1)gWarn("Drive upload failed – saved locally ("+String(e.message).slice(0,60)+")");if(fails>5){setStatus("⚠ Drive upload failing: "+esc(e.message)+" — saved locally, will retry.");fails=0;await new Promise(r=>setTimeout(r,30000));}else await new Promise(r=>setTimeout(r,2000*fails));}}
  gdBusy=false;gdUI();}
-setInterval(gdKick,60000);
+setInterval(()=>{gdKick().catch(()=>{});},60000);
 gdUI();
 
 /* ---------- Station / Device ---------- */
@@ -359,30 +376,32 @@ let emCur=null;function gTokOK(){return !!(gdTok&&Date.now()<gdExp);}
 const emTo=()=>localStorage.getItem("be_emto")||"vibhvesh@gmail.com";
 function emBanner(){const on=$("emOn")&&$("emOn").checked;$("emBanner").style.display=on&&!gTokOK()?"block":"none";
  const n=emQ.length;$("emBanner").textContent=n?`✉ Email alerts paused (${n} queued) — tap to connect Google`:"✉ Email alerts paused — tap to connect Google";}
-$("emBanner").onclick=googleConnect;
+$("emBanner").onclick=()=>{googleConnect().catch(()=>{});};
 async function gmailErr(r){const t=await r.text();let m=t.slice(0,200),reason="";try{const j=JSON.parse(t).error;m=j.message||m;reason=(j.errors&&j.errors[0]&&j.errors[0].reason)||j.status||"";}catch(e){}
  const er=new Error(`Gmail ${r.status}${reason?" "+reason:""}: ${m}`);
  er.hint=r.status===403&&/disabled|not been used|accessNotConfigured|SERVICE_DISABLED/i.test(t)?"Enable the Gmail API in the same Google Cloud project (APIs & Services → Library → Gmail API → Enable), wait a few minutes, then retry."
   :r.status===403?"Gmail send permission missing: add the gmail.send scope on the OAuth consent screen, then Disconnect + Connect Google and approve Gmail."
   :r.status===401?"Google session expired — tap Connect Google & send.":r.status===400?"Bad request — check the alert recipient address in Settings.":"";
  return er;}
-async function emSend(c){const r=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+gdTok,"Content-Type":"application/json"},body:JSON.stringify({raw:await buildMime(c)})});
+async function emSend(c){const r=await fetchT("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+gdTok,"Content-Type":"application/json"},body:JSON.stringify({raw:await buildMime(c)})},60000);
  if(r.status===401){gdTok=null;gdExp=0;}if(!r.ok)throw await gmailErr(r);}
 async function emEnqueue(c){c.emPending=true;c.emTry=0;c.em={st:"pend",msg:"Email alert queued → "+emTo()+(gTokOK()?"":" · Google not connected")};
- if(!emQ.find(x=>x.id===c.id))emQ.push(c);await put(c);emBanner();setTimeout(emKick,0);}
+ if(!emQ.find(x=>x.id===c.id))emQ.push(c);await put(c);try{emBanner();}catch(e){}setTimeout(()=>emKick().catch(()=>{}),0);if(!gTokOK())gWarn("Google not connected – emails queued, app running normally");}
 async function emRequeue(){if(!db)return;for(const c of await getAll())if(c.emPending&&c.id!==emCur&&!emQ.find(x=>x.id===c.id))emQ.push(c);emBanner();}
-async function emKick(){emBanner();if(emBusy||!emQ.length)return;
+async function emKick(){try{return await emKick0();}catch(e){emBusy=false;gWarn("Email send failed – alert kept in queue");}}
+async function emKick0(){emBanner();if(emBusy||!emQ.length)return;
  if(!gTokOK()){for(const c of emQ){c.em={st:"pend",msg:"Email alert queued → "+emTo()+" · Google not connected"};renderClip(c);}return;}
  if(!gmailOK){for(const c of emQ){c.em={st:"err",msg:"Queued — Gmail send permission not granted",hint:"Add the gmail.send scope on the OAuth consent screen, then Disconnect + Connect Google and tick the Gmail permission."};renderClip(c);}return;}
  emBusy=true;
  while(emQ.length&&gTokOK()){const c=emQ.shift();if(!c.emPending)continue;emCur=c.id;try{c.em={st:"pend",msg:"Sending email alert…"};renderClip(c);await emSend(c);c.emPending=false;c.em={st:"ok",msg:"Email alert sent to "+emTo()+" · "+istStr(Date.now())};}
   catch(e){c.emTry=(c.emTry||0)+1;
    if(!gTokOK()){c.em={st:"err",msg:e.message,hint:e.hint};emQ.push(c);}
-   else if(c.emTry<2){c.em={st:"pend",msg:e.message+" — retrying once in 15 s…",hint:e.hint};setTimeout(()=>{emQ.push(c);emKick();},15000);}
-   else{c.emPending=false;c.em={st:"err",msg:"Email alert failed: "+e.message,hint:e.hint};}}
+   else{const w=Math.min(300000,15000*Math.pow(2,c.emTry-1));c.em={st:"err",msg:e.message+" — kept in queue, retrying in "+Math.round(w/1000)+" s",hint:e.hint};setTimeout(()=>{if(!emQ.find(x=>x.id===c.id))emQ.push(c);emKick();},w);}
+   if(c.emTry===1||!gTokOK())gWarn((/403/.test(e.message)?"Gmail send blocked (403)":/401/.test(e.message)?"Google session expired":"Email send failed")+" – email queued, app running normally");}
   await put(c);renderClip(c);emCur=null;}
  emBusy=false;emBanner();}
 $("emOn").addEventListener("change",emBanner);
-(function w(){if(db){emRequeue().then(emKick);}else setTimeout(w,200);})();
+setTimeout(()=>{if(window.__gisFail||!(window.google&&google.accounts))gWarn("Google sign-in unavailable – emails queued, app running normally");},8000);
+(function w(){if(db){emRequeue().then(emKick).catch(()=>{});}else setTimeout(w,200);})();
 emBanner();
 </script></body></html>
