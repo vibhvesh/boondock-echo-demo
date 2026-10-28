@@ -56,40 +56,61 @@ input[type=range]{width:100%;accent-color:var(--amb)}
 @media(min-width:700px){body{padding-top:44px}.radio{min-height:auto}.lcd{min-height:440px}#log{max-height:440px}}
 .drv{font-size:9px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;margin-left:6px;letter-spacing:1px}.drv.off{opacity:.35}.drv.ok{color:#3a7d1e}.drv.up{color:#b07a00;animation:bl 1s infinite}.drv.err{color:#c0392b}@keyframes bl{50%{opacity:.3}}
 .gd{display:inline-flex;align-items:center;gap:6px}.gd svg{width:16px;height:16px}.dck{color:#1a73e8;font-weight:bold;margin-left:4px}#sess{font-size:10px;letter-spacing:1px}
+.gear{background:linear-gradient(#3b3f45,#22252a);color:#ddd;border-radius:50%;width:38px;height:38px;font-size:20px;box-shadow:0 2px 0 #000,inset 0 1px 0 #ffffff22}
+.modal{position:fixed;inset:0;background:#000b;display:none;z-index:50;justify-content:center;align-items:flex-start;overflow-y:auto;padding:16px 8px}.modal.on{display:flex}
+.panel{width:100%;max-width:480px;background:linear-gradient(160deg,#2a2e33,#141618);border-radius:20px;border:1px solid #000;box-shadow:0 10px 40px #000}
+.ph{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:800;letter-spacing:2px;color:var(--amb);position:sticky;top:0;background:#1d2024;border-radius:20px 20px 0 0;z-index:2}
+.sect{border-top:1px dashed #555;padding-top:8px;display:flex;flex-direction:column;gap:8px}.sect>b{color:var(--amb);font-size:11px;letter-spacing:1.5px}
+.dw input[type=email],.dw input[type=text],.dw textarea{width:100%;padding:9px;border-radius:10px;border:1px solid #000;background:#17191c;color:var(--amb);font-size:13px;font-family:inherit}
+.chk{flex-direction:row!important;align-items:center;gap:8px!important}
+#kwBar{display:flex;flex-wrap:nowrap;gap:4px;font-size:10px;margin:4px 0;overflow-x:auto;white-space:nowrap;scrollbar-width:none}#kwBar>*{flex:none}
+.chip{border:1px solid #c8f56a55;border-radius:9px;padding:1px 6px;opacity:.7}.chip.hit{background:#ff3b2f;color:#fff;border-color:#ff3b2f;opacity:1;font-weight:700}
+mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weight:800;box-shadow:0 0 6px #ffb43a}
+.clip.alert{border-left:5px solid #ff3b2f;background:#ff3b2f26;box-shadow:0 0 0 1px #ff3b2f88,0 0 14px #ff3b2f55}
+.abadge{color:#fff;background:#ff3b2f;border-radius:4px;padding:0 5px;font-weight:800;font-size:10px;letter-spacing:1px}
+.em{font-size:11px;margin-top:3px}.em.ok{color:#7fe07a}.em.err{color:#ff8a80}.em.pend{color:var(--amb)}
 </style><script src="https://accounts.google.com/gsi/client" async defer></script></head><body>
 <div class="radio"><div class="ant"></div><div class="knob"></div>
 <div class="body">
-<div class="plate"><div class="brand">BOONDOCK ECHO<small>LIVE RADIO TRANSCRIPTION</small></div><div class="tri"></div><span class="demo">DEMO</span></div>
+<div class="plate"><div class="brand">BOONDOCK ECHO<small>LIVE RADIO TRANSCRIPTION</small></div><div class="tri"></div><span class="demo">DEMO</span><button class="gear" id="gearBtn" title="Settings" aria-label="Settings">⚙</button></div>
 <div class="lcd">
  <div class="strip"><canvas id="meter" width="900" height="56"></canvas><div class="prog" id="prog"><div></div></div><div id="status">Idle. Enter your API key in Settings, then press Start.</div></div>
  <div class="lh"><span>◂ RX LOG · NEWEST FIRST</span><span><span id="sess">SESSION —</span> <span id="cnt"></span><span id="drv" class="drv off" title="Google Drive">DRIVE</span></span></div>
+ <div id="kwBar"></div>
  <div id="log"></div>
 </div>
 <div class="grille"></div>
 <div class="keys">
  <div class="ptt"><button id="startBtn">▶ START</button><button id="stopBtn" disabled>■ STOP</button></div>
- <label class="sel">SOURCE<select id="src"></select></label>
- <label class="sel">TRANSLATE<select id="dst"></select></label>
- <button id="recalBtn" class="k" disabled style="grid-column:1/-1">⟳ RECALIBRATE</button>
 </div>
-<details class="drawer"><summary>⚙ SETTINGS ▾</summary><div class="dw">
+<div class="one">DEMO · Temporary data, auto-deleted after 7 days · ⚙ Settings for key, languages, Drive &amp; alerts</div>
+</div></div>
+<div class="modal" id="setModal"><div class="panel"><div class="ph"><span>⚙ SETTINGS</span><button class="gear" id="setClose" aria-label="Close">✕</button></div><div class="dw">
+ <div class="row"><label class="sel">SOURCE<select id="src"></select></label><label class="sel">TRANSLATE<select id="dst"></select></label></div>
  <label>ElevenLabs API key (stored only in this browser)<input id="key" type="password" placeholder="xi-api-key" autocomplete="off"></label>
  <div class="row"><button class="lt" id="saveKey">Save key</button><button class="lt" id="forgetKey">Forget key</button></div>
- <label>Hang time (squelch tail): <span id="hangV">1.5</span> s<input id="hang" type="range" min="0.8" max="3" step="0.1" value="1.5"></label>
- <label>Threshold margin: <span id="marV">9</span> dB<input id="mar" type="range" min="4" max="20" step="1" value="9"></label>
+ <label><span>Hang time (squelch tail): <span id="hangV">1.5</span> s</span><input id="hang" type="range" min="0.8" max="3" step="0.1" value="1.5"></label>
+ <label><span>Threshold margin: <span id="marV">9</span> dB</span><input id="mar" type="range" min="4" max="20" step="1" value="9"></label>
+ <button id="recalBtn" class="lt" disabled>⟳ Recalibrate squelch</button>
  <div style="font-size:10px">Meter: voice-band level (300–3400 Hz) · <span style="color:#ffcc00">yellow</span> = noise floor · <span style="color:#ff5252">red</span> = squelch threshold</div>
  <div class="row"><button class="sec" id="dlAll">⬇ Download all (.zip)</button><button class="lt" id="clearAll">Clear all</button></div>
  <div style="border-top:1px dashed #999;padding-top:6px"><b>Google Drive auto-save</b>
- <div class="row"><button class="sec gd" id="gdConn"><svg viewBox="0 0 87.3 78"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5A9 9 0 000 53h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5L60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg><span id="gdLbl">Connect Google Drive</span></button><button class="lt" id="gdDisc" style="display:none">Disconnect</button></div>
+ <div class="row"><button class="sec gd" id="gdConn"><svg viewBox="0 0 87.3 78"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5A9 9 0 000 53h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5L60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg><span id="gdLbl">Connect Google</span></button><button class="lt" id="gdDisc" style="display:none">Disconnect</button></div>
  <label id="gdAutoL" style="display:none"><input type="checkbox" id="gdAuto"> Auto-save to Drive</label>
  <div id="gdInfo" style="font-size:10px"></div>
  <div style="font-size:10px">Files go to <b>your own</b> Google Drive (folder "Boondock Echo/&lt;date&gt;/&lt;session&gt;/"). This app only sees files it created.</div></div>
+ <div class="sect"><b>KEYWORD ALERTS</b>
+ <label>Keywords (comma or newline separated, case-insensitive)<textarea id="kwList" rows="4"></textarea></label>
+ <div class="row"><button class="lt" id="kwSave">Save keywords</button><button class="lt" id="kwReset">Restore defaults</button></div>
+ <label class="chk"><input type="checkbox" id="kwSound"> Beep + vibrate on hit</label></div>
+ <div class="sect"><b>EMAIL ALERTS (GMAIL)</b>
+ <label class="chk"><input type="checkbox" id="emOn"> Email me when a keyword is detected (WAV attached)</label>
+ <label>Send alerts to<input id="emTo" type="email" placeholder="you@example.com"></label>
+ <div style="font-size:10px">Sent from your own Gmail via "Connect Google" above (Drive + Gmail send permission). Failed emails are retried once.</div></div>
  <div class="note d"><b>Demo only</b> — not for official or commercial use.</div>
  <div class="note"><b>Data notice:</b> Your data is temporary and stored only in this browser. Download your data yourself; anything older than 7 days is deleted automatically.</div>
  <div class="foot">Audio clips are sent to ElevenLabs (speech-to-text) and text to Google Translate (fallback MyMemory) for processing. Boondock Echo DEMO · Not an official government website.</div>
-</div></details>
-<div class="one">DEMO · Temporary data, auto-deleted after 7 days · Download yours from Settings</div>
-</div></div>
+</div></div></div>
 <script>
 "use strict";
 const $=id=>document.getElementById(id);
@@ -116,9 +137,10 @@ const clr=()=>new Promise(r=>{const q=tx("readwrite").clear();q.onsuccess=r;q.on
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
 const fmtT=t=>new Date(t).toLocaleString();
 function renderClip(c){let el=document.getElementById("c"+c.id);const isNew=!el;if(isNew){el=document.createElement("div");el.className="clip";el.id="c"+c.id;$("log").prepend(el);}
+ el.classList.toggle("alert",!!(c.kw&&c.kw.length));
  const url=el.dataset.url||URL.createObjectURL(c.audio);el.dataset.url=url;
- el.innerHTML=`<div class="meta"><span>🕒 ${esc(fmtT(c.t))} · ${c.dur.toFixed(1)} s${c.lang?" · "+esc(c.lang):""}</span><span><button class="lt" data-a="dl">⬇ Download</button> <button class="lt" data-a="rm">✕</button></span></div>
- <div class="tx">${c.text?esc(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${esc(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}<audio controls src="${url}"></audio>`;
+ el.innerHTML=`<div class="meta"><span>${c.kw&&c.kw.length?'<span class="abadge">⚠ ALERT</span> ':""}🕒 ${esc(fmtT(c.t))} · ${c.dur.toFixed(1)} s${c.lang?" · "+esc(c.lang):""}</span><span><button class="lt" data-a="dl">⬇ Download</button> <button class="lt" data-a="rm">✕</button></span></div>
+ <div class="tx">${c.text?hl(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${hl(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}${c.em?`<div class="em ${c.em.st}">✉ ${esc(c.em.msg)}</div>`:""}<audio controls src="${url}"></audio>`;
  el.querySelector('[data-a=dl]').onclick=()=>dlClip(c);el.querySelector('[data-a=rm]').onclick=async()=>{await del(c.id);URL.revokeObjectURL(url);el.remove();count();};count();}
 async function count(){const n=(await getAll()).length;$("cnt").textContent=n+" clip(s) stored";}
 function saveBlob(b,name){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
@@ -168,6 +190,7 @@ async function processClip(chunks,rate,t){const audio=toWav(chunks,rate);const d
  const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,session:sessionId,dur,audio,text:"",trans:"",dst:$("dst").value,status:"Transcribing…"};await put(c);renderClip(c);
  try{const r=await stt(audio);c.text=r.text||"";c.lang=r.lang;c.status=c.text?"":"(no speech recognised)";
   if(c.text&&c.dst){const sl=(c.lang||"").slice(0,2);if(sl!==c.dst)c.trans=await translate(c.text,c.dst,sl);}}catch(e){c.status="⚠ "+e.message;}
+ c.kw=kwMatch((c.text||"")+"\n"+(c.trans||""));if(c.kw.length){kwHit(c.kw);if(localStorage.getItem("be_emon")!=="0")emEnqueue(c);}
  await put(c);renderClip(c);driveEnqueue(c);}
 
 /* ---------- Audio engine / smart squelch ---------- */
@@ -220,20 +243,20 @@ let sessionId="";
 const p2=n=>String(n).padStart(2,"0");
 const ymd=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`,hms=d=>`${p2(d.getHours())}-${p2(d.getMinutes())}-${p2(d.getSeconds())}`;
 function newSession(){const d=new Date();sessionId=`S-${ymd(d).replace(/-/g,"")}-${hms(d).replace(/-/g,"")}-${Math.random().toString(36).slice(2,6)}`;$("sess").textContent="SESSION "+sessionId;}
-const GD_CID="296319479317-gaavhft9vjr3ci349v3udtvv236pbbnr.apps.googleusercontent.com",GD_SCOPE="https://www.googleapis.com/auth/drive.file";
-let gdTok=null,gdExp=0,gdClient=null,gdPending=null,gdQ=[],gdBusy=false,gdNeedReconnect=false;const gdFolders={},gdCsv={};
+const GD_CID="296319479317-gaavhft9vjr3ci349v3udtvv236pbbnr.apps.googleusercontent.com",GD_SCOPE="https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send";
+let gmailOK=false,gdTok=null,gdExp=0,gdClient=null,gdPending=null,gdQ=[],gdBusy=false,gdNeedReconnect=false;const gdFolders={},gdCsv={};
 function gdInd(st){const e=$("drv");e.className="drv "+st;e.title="Google Drive: "+({off:"off",ok:"connected",up:"uploading",err:"error"})[st];}
-function gdUI(){const on=localStorage.getItem("be_gd")==="1";$("gdLbl").textContent=gdNeedReconnect?"Reconnect Drive":on?"Drive connected ✓":"Connect Google Drive";
+function gdUI(){const on=localStorage.getItem("be_gd")==="1";$("gdLbl").textContent=gdNeedReconnect?"Reconnect Drive":on?"Drive connected ✓":"Connect Google (Drive + Gmail)";
  $("gdDisc").style.display=on?"":"none";$("gdAutoL").style.display=on?"":"none";$("gdAuto").checked=localStorage.getItem("be_gdauto")!=="0";
  $("gdInfo").textContent=gdQ.length?gdQ.length+" upload(s) queued":"";gdInd(!on?"off":gdNeedReconnect?"err":gdBusy?"up":"ok");}
 function gdInit(){if(gdClient)return true;if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
  gdClient=google.accounts.oauth2.initTokenClient({client_id:GD_CID,scope:GD_SCOPE,callback:r=>{const p=gdPending;gdPending=null;
-  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);},
+  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;gmailOK=google.accounts.oauth2.hasGrantedAllScopes(r,"https://www.googleapis.com/auth/gmail.send");gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);},
   error_callback:e=>{const p=gdPending;gdPending=null;p&&p.rej(new Error(e.type||"popup error"));}});return true;}
 function gdRequest(prompt){return new Promise((res,rej)=>{if(!gdInit())return rej(new Error("Google sign-in library not loaded"));gdPending={res,rej};gdClient.requestAccessToken({prompt});});}
 async function gdToken(){if(gdTok&&Date.now()<gdExp)return gdTok;try{return await gdRequest("");}catch(e){gdNeedReconnect=true;gdUI();setStatus('⚠ Google Drive session expired — open Settings and tap <b>Reconnect Drive</b>.');throw e;}}
-$("gdConn").onclick=async()=>{try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google Drive connected. Clips will auto-save.");gdKick();}catch(e){setStatus("⚠ Drive connect failed: "+esc(e.message));}gdUI();};
-$("gdDisc").onclick=()=>{if(gdTok&&window.google)try{google.accounts.oauth2.revoke(gdTok,()=>{});}catch(e){}gdTok=null;gdExp=0;gdNeedReconnect=false;localStorage.removeItem("be_gd");gdUI();setStatus("Google Drive disconnected.");};
+$("gdConn").onclick=async()=>{try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google connected. Drive auto-save on"+(gmailOK?" · Gmail alerts ready.":" · ⚠ Gmail send permission not granted."));gdKick();emKick();}catch(e){setStatus("⚠ Drive connect failed: "+esc(e.message));}gdUI();};
+$("gdDisc").onclick=()=>{if(gdTok&&window.google)try{google.accounts.oauth2.revoke(gdTok,()=>{});}catch(e){}gdTok=null;gdExp=0;gdNeedReconnect=false;localStorage.removeItem("be_gd");gmailOK=false;gdUI();setStatus("Google Drive disconnected.");};
 $("gdAuto").onchange=()=>{localStorage.setItem("be_gdauto",$("gdAuto").checked?"1":"0");gdKick();};
 async function gdFetch(url,opt={}){const t=await gdToken();opt.headers=Object.assign({},opt.headers,{Authorization:"Bearer "+t});const r=await fetch(url,opt);
  if(r.status===401){gdTok=null;throw new Error("401");}if(!r.ok)throw new Error("Drive "+r.status+": "+(await r.text()).slice(0,120));return r.json();}
@@ -266,4 +289,50 @@ async function gdKick(){if(gdBusy||!gdQ.length||gdNeedReconnect||localStorage.ge
  gdBusy=false;gdUI();}
 setInterval(gdKick,60000);
 gdUI();
+
+/* ---------- Settings modal ---------- */
+$("gearBtn").onclick=()=>$("setModal").classList.add("on");$("setClose").onclick=()=>$("setModal").classList.remove("on");
+$("setModal").onclick=e=>{if(e.target.id==="setModal")$("setModal").classList.remove("on");};
+
+/* ---------- Keyword alerts ---------- */
+const KW_DEF=["mayday","emergency","chetavani","चेतावनी","alert","danger","gunshot","fire","help","sos","accident","attack","bomb","injured","firing","khatra","bachao"];
+let kws=[],kwRe=null,kwRecent=[];
+function kwLoad(){try{kws=JSON.parse(localStorage.getItem("be_kw")||"null");}catch(e){kws=null;}if(!Array.isArray(kws)||!kws.length)kws=KW_DEF.slice();kwBuild();$("kwList").value=kws.join(", ");kwBar();}
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
+function kwBuild(){kwRe=kws.length?new RegExp("(?<![\\p{L}\\p{N}\\p{M}])("+kws.slice().sort((a,b)=>b.length-a.length).map(reEsc).join("|")+")(?![\\p{L}\\p{N}\\p{M}])","giu"):null;}
+function kwMatch(t){if(!kwRe||!t)return[];const f=new Set();for(const m of t.matchAll(kwRe))f.add(m[1].toLowerCase());return[...f];}
+function hl(t){const e=esc(t);if(!kwRe)return e;return e.replace(kwRe,'<mark class="kw">$1</mark>');}
+function kwBar(){$("kwBar").innerHTML='<span style="opacity:.7">⚑ WATCH:</span>'+kws.map(k=>`<span class="chip${kwRecent.includes(k.toLowerCase())?" hit":""}">${esc(k)}</span>`).join("");}
+function kwHit(list){kwRecent=[...new Set([...list,...kwRecent])].slice(0,8);kwBar();setStatus('<span class="rec">⚠ KEYWORD ALERT: '+esc(list.join(", "))+'</span>');
+ if(localStorage.getItem("be_kwsound")==="0")return;try{navigator.vibrate&&navigator.vibrate([200,100,200,100,400]);}catch(e){}
+ try{const a=new (window.AudioContext||window.webkitAudioContext)();[0,0.3].forEach(d=>{const o=a.createOscillator(),gn=a.createGain();o.type="square";o.frequency.value=1200;gn.gain.value=0.15;o.connect(gn);gn.connect(a.destination);o.start(a.currentTime+d);o.stop(a.currentTime+d+0.2);});setTimeout(()=>a.close(),1200);}catch(e){}}
+$("kwSave").onclick=()=>{kws=[...new Set($("kwList").value.split(/[,\n]/).map(s=>s.trim()).filter(Boolean))];localStorage.setItem("be_kw",JSON.stringify(kws));kwLoad();(async()=>{for(const c of await getAll()){c.kw=kwMatch((c.text||"")+"\n"+(c.trans||""));renderClip(c);}})();setStatus("Keywords saved ("+kws.length+").");};
+$("kwReset").onclick=()=>{localStorage.removeItem("be_kw");kwLoad();setStatus("Default keywords restored.");};
+$("kwSound").checked=localStorage.getItem("be_kwsound")!=="0";$("kwSound").onchange=()=>localStorage.setItem("be_kwsound",$("kwSound").checked?"1":"0");
+kwLoad();
+
+/* ---------- Email alerts (Gmail API) ---------- */
+$("emOn").checked=localStorage.getItem("be_emon")!=="0";$("emOn").onchange=()=>localStorage.setItem("be_emon",$("emOn").checked?"1":"0");
+$("emTo").value=localStorage.getItem("be_emto")||"vibhvesh@gmail.com";$("emTo").onchange=()=>localStorage.setItem("be_emto",$("emTo").value.trim());
+let emQ=[],emBusy=false;
+const istStr=t=>new Date(t).toLocaleString("en-IN",{timeZone:"Asia/Kolkata",dateStyle:"medium",timeStyle:"medium"})+" IST";
+const b64u=s=>s.replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const utf8b64=s=>{const b=new TextEncoder().encode(s);let r="";for(let i=0;i<b.length;i+=0x8000)r+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(r);};
+async function blobB64(b){const u=new Uint8Array(await b.arrayBuffer());let r="";for(let i=0;i<u.length;i+=0x8000)r+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(r);}
+const wrap76=s=>s.replace(/.{1,76}/g,"$&\r\n");
+async function buildMime(c){const to=localStorage.getItem("be_emto")||"vibhvesh@gmail.com",sess=c.session||"no-session",when=istStr(c.t),kw=(c.kw||[]).join(", ");
+ const subj=`Boondock Echo ALERT: ${kw} - ${when} - ${sess}`,b="be"+Math.random().toString(36).slice(2);
+ const body=`BOONDOCK ECHO KEYWORD ALERT (DEMO)\n\nKeywords: ${kw}\nTimestamp: ${when} (${new Date(c.t).toISOString()})\nSession ID: ${sess}\nDuration: ${c.dur.toFixed(1)} s\nSource language: ${c.lang||"auto"}\n\nTranscript:\n${c.text||""}\n\nTranslation${c.dst?" ("+c.dst+")":""}:\n${c.trans||"(none)"}\n\nAudio clip attached (WAV).\n`;
+ const fn=`${ymd(new Date(c.t))}_${hms(new Date(c.t))}_${sess}.wav`;
+ const mime=`To: ${to}\r\nSubject: =?UTF-8?B?${utf8b64(subj)}?=\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${b}"\r\n\r\n--${b}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(utf8b64(body))}--${b}\r\nContent-Type: audio/wav; name="${fn}"\r\nContent-Disposition: attachment; filename="${fn}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(await blobB64(c.audio))}--${b}--\r\n`;
+ return b64u(utf8b64(mime));}
+async function emSend(c){if(!gdTok&&localStorage.getItem("be_gd")!=="1")throw new Error("Google not connected — open ⚙ Settings → Connect Google");
+ const t=await gdToken();const r=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify({raw:await buildMime(c)})});
+ if(r.status===401)gdTok=null;if(!r.ok)throw new Error("Gmail "+r.status+": "+(await r.text()).slice(0,140));}
+function emEnqueue(c){c.em={st:"pend",msg:"Email alert queued → "+(localStorage.getItem("be_emto")||"vibhvesh@gmail.com")};c.emTry=0;if(!emQ.find(x=>x.id===c.id))emQ.push(c);setTimeout(emKick,0);}
+async function emKick(){if(emBusy||!emQ.length)return;emBusy=true;
+ while(emQ.length){const c=emQ.shift();try{c.em={st:"pend",msg:"Sending email alert…"};renderClip(c);await emSend(c);c.em={st:"ok",msg:"Email alert sent to "+(localStorage.getItem("be_emto")||"")+" · "+istStr(Date.now())};}
+  catch(e){c.emTry=(c.emTry||0)+1;if(c.emTry<2){c.em={st:"pend",msg:"Email failed ("+e.message+") — retrying once in 15 s…"};setTimeout(()=>{emQ.push(c);emKick();},15000);}else c.em={st:"err",msg:"Email alert failed: "+e.message};}
+  await put(c);renderClip(c);}
+ emBusy=false;}
 </script></body></html>
