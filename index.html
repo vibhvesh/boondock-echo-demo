@@ -54,13 +54,15 @@ input[type=range]{width:100%;accent-color:var(--amb)}
 .foot{font-size:10px;color:#888;line-height:1.4}
 .one{text-align:center;font-size:10px;color:#8a8f96;margin-top:8px}
 @media(min-width:700px){body{padding-top:44px}.radio{min-height:auto}.lcd{min-height:440px}#log{max-height:440px}}
-</style></head><body>
+.drv{font-size:9px;padding:1px 5px;border:1px solid currentColor;border-radius:3px;margin-left:6px;letter-spacing:1px}.drv.off{opacity:.35}.drv.ok{color:#3a7d1e}.drv.up{color:#b07a00;animation:bl 1s infinite}.drv.err{color:#c0392b}@keyframes bl{50%{opacity:.3}}
+.gd{display:inline-flex;align-items:center;gap:6px}.gd svg{width:16px;height:16px}.dck{color:#1a73e8;font-weight:bold;margin-left:4px}#sess{font-size:10px;letter-spacing:1px}
+</style><script src="https://accounts.google.com/gsi/client" async defer></script></head><body>
 <div class="radio"><div class="ant"></div><div class="knob"></div>
 <div class="body">
 <div class="plate"><div class="brand">BOONDOCK ECHO<small>LIVE RADIO TRANSCRIPTION</small></div><div class="tri"></div><span class="demo">DEMO</span></div>
 <div class="lcd">
  <div class="strip"><canvas id="meter" width="900" height="56"></canvas><div class="prog" id="prog"><div></div></div><div id="status">Idle. Enter your API key in Settings, then press Start.</div></div>
- <div class="lh"><span>◂ RX LOG · NEWEST FIRST</span><span id="cnt"></span></div>
+ <div class="lh"><span>◂ RX LOG · NEWEST FIRST</span><span><span id="sess">SESSION —</span> <span id="cnt"></span><span id="drv" class="drv off" title="Google Drive">DRIVE</span></span></div>
  <div id="log"></div>
 </div>
 <div class="grille"></div>
@@ -77,6 +79,11 @@ input[type=range]{width:100%;accent-color:var(--amb)}
  <label>Threshold margin: <span id="marV">9</span> dB<input id="mar" type="range" min="4" max="20" step="1" value="9"></label>
  <div style="font-size:10px">Meter: voice-band level (300–3400 Hz) · <span style="color:#ffcc00">yellow</span> = noise floor · <span style="color:#ff5252">red</span> = squelch threshold</div>
  <div class="row"><button class="sec" id="dlAll">⬇ Download all (.zip)</button><button class="lt" id="clearAll">Clear all</button></div>
+ <div style="border-top:1px dashed #999;padding-top:6px"><b>Google Drive auto-save</b>
+ <div class="row"><button class="sec gd" id="gdConn"><svg viewBox="0 0 87.3 78"><path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3L27.5 53H0c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/><path d="M43.65 25L29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5A9 9 0 000 53h27.5z" fill="#00ac47"/><path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/><path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.9 0H34.4c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/><path d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/><path d="M73.4 26.5L60.7 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/></svg><span id="gdLbl">Connect Google Drive</span></button><button class="lt" id="gdDisc" style="display:none">Disconnect</button></div>
+ <label id="gdAutoL" style="display:none"><input type="checkbox" id="gdAuto"> Auto-save to Drive</label>
+ <div id="gdInfo" style="font-size:10px"></div>
+ <div style="font-size:10px">Files go to <b>your own</b> Google Drive (folder "Boondock Echo/&lt;date&gt;/&lt;session&gt;/"). This app only sees files it created.</div></div>
  <div class="note d"><b>Demo only</b> — not for official or commercial use.</div>
  <div class="note"><b>Data notice:</b> Your data is temporary and stored only in this browser. Download your data yourself; anything older than 7 days is deleted automatically.</div>
  <div class="foot">Audio clips are sent to ElevenLabs (speech-to-text) and text to Google Translate (fallback MyMemory) for processing. Boondock Echo DEMO · Not an official government website.</div>
@@ -111,7 +118,7 @@ const fmtT=t=>new Date(t).toLocaleString();
 function renderClip(c){let el=document.getElementById("c"+c.id);const isNew=!el;if(isNew){el=document.createElement("div");el.className="clip";el.id="c"+c.id;$("log").prepend(el);}
  const url=el.dataset.url||URL.createObjectURL(c.audio);el.dataset.url=url;
  el.innerHTML=`<div class="meta"><span>🕒 ${esc(fmtT(c.t))} · ${c.dur.toFixed(1)} s${c.lang?" · "+esc(c.lang):""}</span><span><button class="lt" data-a="dl">⬇ Download</button> <button class="lt" data-a="rm">✕</button></span></div>
- <div class="tx">${c.text?esc(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}</div>${c.trans?`<div class="tr">↳ ${esc(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}<audio controls src="${url}"></audio>`;
+ <div class="tx">${c.text?esc(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${esc(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}<audio controls src="${url}"></audio>`;
  el.querySelector('[data-a=dl]').onclick=()=>dlClip(c);el.querySelector('[data-a=rm]').onclick=async()=>{await del(c.id);URL.revokeObjectURL(url);el.remove();count();};count();}
 async function count(){const n=(await getAll()).length;$("cnt").textContent=n+" clip(s) stored";}
 function saveBlob(b,name){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
@@ -158,10 +165,10 @@ async function translate(text,tl,sl){if(!text||!tl)return"";
  try{const r=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl||"auto"}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`);const j=await r.json();const s=j[0].map(x=>x[0]).join("");if(s)return s;}catch(e){}
  try{const r=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,480))}&langpair=${(sl&&sl.length===2?sl:"en")}|${tl}`);const j=await r.json();return j.responseData.translatedText||"";}catch(e){return"(translation failed)";}}
 async function processClip(chunks,rate,t){const audio=toWav(chunks,rate);const dur=chunks.reduce((a,c)=>a+c.length,0)/rate;
- const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,dur,audio,text:"",trans:"",dst:$("dst").value,status:"Transcribing…"};await put(c);renderClip(c);
+ const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,session:sessionId,dur,audio,text:"",trans:"",dst:$("dst").value,status:"Transcribing…"};await put(c);renderClip(c);
  try{const r=await stt(audio);c.text=r.text||"";c.lang=r.lang;c.status=c.text?"":"(no speech recognised)";
   if(c.text&&c.dst){const sl=(c.lang||"").slice(0,2);if(sl!==c.dst)c.trans=await translate(c.text,c.dst,sl);}}catch(e){c.status="⚠ "+e.message;}
- await put(c);renderClip(c);}
+ await put(c);renderClip(c);driveEnqueue(c);}
 
 /* ---------- Audio engine / smart squelch ---------- */
 let ctx,stream,src,node,an,fbuf,running=false,mode="idle";
@@ -186,6 +193,7 @@ function endClip(){const rate=ctx.sampleRate;const dur=clipLen/rate;const c=clip
 const WK=`class P extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.n=0}process(i){const c=i[0]&&i[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.n++]=c[k];if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}}return true}}registerProcessor('be-cap',P);`;
 async function start(){if(!(localStorage.getItem("be_key")||$("key").value.trim())){alert("Please enter and save your ElevenLabs API key in Settings first.");return;}
  if($("key").value.trim())localStorage.setItem("be_key",$("key").value.trim());
+ newSession();
  try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});}catch(e){alert("Microphone access failed: "+e.message+"\nTip: allow mic access; in Chrome use http://localhost or file:// with permission.");return;}
  ctx=new (window.AudioContext||window.webkitAudioContext)();await ctx.resume();src=ctx.createMediaStreamSource(stream);
  an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.2;fbuf=new Float32Array(an.frequencyBinCount);src.connect(an);
@@ -206,4 +214,56 @@ function draw(){const W=cv.width,H=cv.height,map=d=>Math.max(0,Math.min(1,(d+100
 draw();
 (async()=>{try{db=await openDB();const cs=await getAll();const now=Date.now();for(const c of cs){if(now-c.t>WEEK)await del(c.id);}
  (await getAll()).sort((a,b)=>a.t-b.t).forEach(renderClip);count();}catch(e){setStatus("Storage unavailable: "+e.message);}draw();})();
+
+/* ---------- Session + Google Drive ---------- */
+let sessionId="";
+const p2=n=>String(n).padStart(2,"0");
+const ymd=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`,hms=d=>`${p2(d.getHours())}-${p2(d.getMinutes())}-${p2(d.getSeconds())}`;
+function newSession(){const d=new Date();sessionId=`S-${ymd(d).replace(/-/g,"")}-${hms(d).replace(/-/g,"")}-${Math.random().toString(36).slice(2,6)}`;$("sess").textContent="SESSION "+sessionId;}
+const GD_CID="296319479317-gaavhft9vjr3ci349v3udtvv236pbbnr.apps.googleusercontent.com",GD_SCOPE="https://www.googleapis.com/auth/drive.file";
+let gdTok=null,gdExp=0,gdClient=null,gdPending=null,gdQ=[],gdBusy=false,gdNeedReconnect=false;const gdFolders={},gdCsv={};
+function gdInd(st){const e=$("drv");e.className="drv "+st;e.title="Google Drive: "+({off:"off",ok:"connected",up:"uploading",err:"error"})[st];}
+function gdUI(){const on=localStorage.getItem("be_gd")==="1";$("gdLbl").textContent=gdNeedReconnect?"Reconnect Drive":on?"Drive connected ✓":"Connect Google Drive";
+ $("gdDisc").style.display=on?"":"none";$("gdAutoL").style.display=on?"":"none";$("gdAuto").checked=localStorage.getItem("be_gdauto")!=="0";
+ $("gdInfo").textContent=gdQ.length?gdQ.length+" upload(s) queued":"";gdInd(!on?"off":gdNeedReconnect?"err":gdBusy?"up":"ok");}
+function gdInit(){if(gdClient)return true;if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
+ gdClient=google.accounts.oauth2.initTokenClient({client_id:GD_CID,scope:GD_SCOPE,callback:r=>{const p=gdPending;gdPending=null;
+  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);},
+  error_callback:e=>{const p=gdPending;gdPending=null;p&&p.rej(new Error(e.type||"popup error"));}});return true;}
+function gdRequest(prompt){return new Promise((res,rej)=>{if(!gdInit())return rej(new Error("Google sign-in library not loaded"));gdPending={res,rej};gdClient.requestAccessToken({prompt});});}
+async function gdToken(){if(gdTok&&Date.now()<gdExp)return gdTok;try{return await gdRequest("");}catch(e){gdNeedReconnect=true;gdUI();setStatus('⚠ Google Drive session expired — open Settings and tap <b>Reconnect Drive</b>.');throw e;}}
+$("gdConn").onclick=async()=>{try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google Drive connected. Clips will auto-save.");gdKick();}catch(e){setStatus("⚠ Drive connect failed: "+esc(e.message));}gdUI();};
+$("gdDisc").onclick=()=>{if(gdTok&&window.google)try{google.accounts.oauth2.revoke(gdTok,()=>{});}catch(e){}gdTok=null;gdExp=0;gdNeedReconnect=false;localStorage.removeItem("be_gd");gdUI();setStatus("Google Drive disconnected.");};
+$("gdAuto").onchange=()=>{localStorage.setItem("be_gdauto",$("gdAuto").checked?"1":"0");gdKick();};
+async function gdFetch(url,opt={}){const t=await gdToken();opt.headers=Object.assign({},opt.headers,{Authorization:"Bearer "+t});const r=await fetch(url,opt);
+ if(r.status===401){gdTok=null;throw new Error("401");}if(!r.ok)throw new Error("Drive "+r.status+": "+(await r.text()).slice(0,120));return r.json();}
+const qs=s=>s.replace(/\\/g,"\\\\").replace(/'/g,"\\'");
+async function gdFolder(name,parent){const k=(parent||"root")+"/"+name;if(gdFolders[k])return gdFolders[k];
+ const q=`name='${qs(name)}' and mimeType='application/vnd.google-apps.folder' and trashed=false and '${parent||"root"}' in parents`;
+ const j=await gdFetch("https://www.googleapis.com/drive/v3/files?fields=files(id)&q="+encodeURIComponent(q));
+ let id=j.files&&j.files[0]&&j.files[0].id;if(!id)id=(await gdFetch("https://www.googleapis.com/drive/v3/files?fields=id",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,mimeType:"application/vnd.google-apps.folder",parents:parent?[parent]:[]})})).id;
+ return gdFolders[k]=id;}
+async function gdUpload(name,parent,blob,mime){const b="be"+Math.random().toString(36).slice(2);
+ const body=new Blob([`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[parent]})}\r\n--${b}\r\nContent-Type: ${mime}\r\n\r\n`,blob,`\r\n--${b}--`]);
+ return (await gdFetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",{method:"POST",headers:{"Content-Type":"multipart/related; boundary="+b},body})).id;}
+const csvq=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+async function gdOne(c){const d=new Date(c.t),day=ymd(d),sess=c.session||("S-"+day.replace(/-/g,"")+"-000000-none"),base=`${day}_${hms(d)}_${sess}`;
+ const root=await gdFolder("Boondock Echo"),df=await gdFolder(day,root),sf=await gdFolder(sess,df);
+ if(!c.driveWav){c.driveWav=await gdUpload(base+".wav",sf,c.audio,"audio/wav");await put(c);}
+ const txt=`Timestamp: ${d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})} IST (${d.toISOString()})\nSession ID: ${sess}\nDuration: ${c.dur.toFixed(1)} s\nSource language: ${c.lang||$("src").value||"auto"}\nTranscript: ${c.text||c.status||""}\nTranslation${c.dst?" ("+c.dst+")":""}: ${c.trans||""}\n`;
+ await gdUpload(base+".txt",sf,new Blob([txt],{type:"text/plain"}),"text/plain");
+ // session.csv: rebuild from all local clips of this session, create or PATCH
+ const rows=(await getAll()).filter(x=>x.session===sess&&(x.drive||x.id===c.id)).sort((a,b)=>a.t-b.t);
+ const csv="\ufefftimestamp_ist,session_id,duration_s,source_lang,transcript,translation_lang,translation,audio_file\n"+rows.map(x=>{const xd=new Date(x.t);return[xd.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}),sess,x.dur.toFixed(1),x.lang||"",x.text||x.status||"",x.dst||"",x.trans||"",`${ymd(xd)}_${hms(xd)}_${sess}.wav`].map(csvq).join(",");}).join("\n");
+ const cb=new Blob([csv],{type:"text/csv"});
+ if(!gdCsv[sess]){const q=`name='session.csv' and '${sf}' in parents and trashed=false`;const j=await gdFetch("https://www.googleapis.com/drive/v3/files?fields=files(id)&q="+encodeURIComponent(q));gdCsv[sess]=j.files&&j.files[0]&&j.files[0].id;}
+ if(gdCsv[sess])await gdFetch(`https://www.googleapis.com/upload/drive/v3/files/${gdCsv[sess]}?uploadType=media&fields=id`,{method:"PATCH",headers:{"Content-Type":"text/csv"},body:cb});
+ else gdCsv[sess]=await gdUpload("session.csv",sf,cb,"text/csv");
+ c.drive=true;await put(c);renderClip(c);}
+function driveEnqueue(c){if(localStorage.getItem("be_gd")!=="1"||localStorage.getItem("be_gdauto")==="0")return;if(!gdQ.find(x=>x.id===c.id))gdQ.push(c);gdKick();}
+async function gdKick(){if(gdBusy||!gdQ.length||gdNeedReconnect||localStorage.getItem("be_gdauto")==="0")return gdUI();gdBusy=true;gdUI();let fails=0;
+ while(gdQ.length&&!gdNeedReconnect){const c=gdQ[0];try{await gdOne(c);gdQ.shift();fails=0;gdUI();}catch(e){if(gdNeedReconnect)break;fails++;gdInd("err");if(fails>5){setStatus("⚠ Drive upload failing: "+esc(e.message)+" — will retry.");fails=0;await new Promise(r=>setTimeout(r,30000));}else await new Promise(r=>setTimeout(r,2000*fails));}}
+ gdBusy=false;gdUI();}
+setInterval(gdKick,60000);
+gdUI();
 </script></body></html>
