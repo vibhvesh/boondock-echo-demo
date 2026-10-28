@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Boondock Echo — Live Radio Transcription — DEMO</title>
+<style>
+:root{--navy:#0b2a5b;--saff:#ff9933;--grn:#138808;--bg:#f3f5f9;--card:#fff;--mut:#5a6578}
+*{box-sizing:border-box}body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:#1c2333}
+.tri{height:6px;background:linear-gradient(90deg,var(--saff) 33.3%,#fff 33.3% 66.6%,var(--grn) 66.6%)}
+header{background:var(--navy);color:#fff;padding:14px 22px;display:flex;align-items:center;gap:14px;position:relative;overflow:hidden}
+header h1{margin:0;font-size:22px}header p{margin:2px 0 0;font-size:13px;opacity:.85}
+.ribbon{position:absolute;right:-42px;top:18px;transform:rotate(45deg);background:#c62828;color:#fff;font-weight:700;padding:4px 50px;letter-spacing:3px;font-size:13px}
+.wm{position:fixed;inset:0;pointer-events:none;display:flex;align-items:center;justify-content:center;font-size:18vw;font-weight:900;color:rgba(11,42,91,.04);transform:rotate(-20deg);z-index:0}
+main{max-width:1000px;margin:0 auto;padding:18px;position:relative;z-index:1}
+.notice{border-left:5px solid var(--saff);background:#fff8ee;padding:12px 14px;margin-bottom:12px;border-radius:4px;font-size:14px}
+.notice.demo{border-color:#c62828;background:#fdecec}
+.card{background:var(--card);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08);padding:16px;margin-bottom:14px;animation:fi .35s ease}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1}}
+.card h2{margin:0 0 10px;font-size:16px;color:var(--navy);border-bottom:2px solid #e3e8f0;padding-bottom:6px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{font-size:13px;color:var(--mut);display:flex;flex-direction:column;gap:4px}
+select,input{padding:9px;border:1px solid #c5cdd9;border-radius:5px;font-size:15px;min-width:170px}
+button{border:0;border-radius:6px;padding:12px 20px;font-size:16px;font-weight:600;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(1.08);transform:translateY(-1px)}button:disabled{opacity:.5;cursor:default;transform:none}
+.pri{background:var(--grn);color:#fff}.stop{background:#c62828;color:#fff}.sec{background:var(--navy);color:#fff}.lt{background:#e3e8f0;color:#1c2333;font-size:14px;padding:8px 14px}
+#meter{width:100%;height:46px;background:#10203d;border-radius:6px;display:block;margin-top:12px}
+#status{font-weight:600;margin-top:8px}.prog{height:8px;background:#e3e8f0;border-radius:4px;overflow:hidden;margin-top:6px;display:none}.prog div{height:100%;width:0;background:var(--saff);transition:width .2s}
+.clip{border:1px solid #e3e8f0;border-left:4px solid var(--navy);border-radius:6px;padding:12px;margin-bottom:10px;animation:fi .35s}
+.clip .meta{font-size:12px;color:var(--mut);display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px}
+.clip .tx{font-size:16px;margin:8px 0 4px}.clip .tr{color:var(--grn);font-size:15px}.clip audio{width:100%;height:34px;margin-top:6px}
+.rec{color:#c62828;animation:bl 1s infinite}@keyframes bl{50%{opacity:.4}}
+details summary{cursor:pointer;color:var(--navy);font-weight:600}
+footer{background:var(--navy);color:#cfd8e8;font-size:12px;text-align:center;padding:14px}
+</style></head><body>
+<div class="tri"></div><div class="wm">DEMO</div>
+<header>
+<svg width="52" height="52" viewBox="0 0 100 100" aria-label="seal"><circle cx="50" cy="50" r="46" fill="none" stroke="#fff" stroke-width="4"/><circle cx="50" cy="50" r="36" fill="none" stroke="#ff9933" stroke-width="2"/><path d="M30 60 Q50 25 70 60" fill="none" stroke="#fff" stroke-width="4"/><path d="M38 60 Q50 40 62 60" fill="none" stroke="#fff" stroke-width="3"/><circle cx="50" cy="62" r="5" fill="#fff"/><text x="50" y="86" fill="#fff" font-size="10" text-anchor="middle" font-weight="700">ECHO</text></svg>
+<div><h1>Boondock Echo — Live Radio Transcription — DEMO</h1><p>Smart-squelch voice capture · Transcription · Translation</p></div>
+<div class="ribbon">DEMO</div></header>
+<main>
+<div class="notice demo"><b>Demo only</b> — not for official or commercial use.</div>
+<div class="notice"><b>Data notice:</b> Your data is temporary and stored only in this browser. Download your data yourself; anything older than 7 days is deleted automatically.</div>
+
+<div class="card"><h2>Live Listening</h2>
+<div class="row">
+<label>Source language<select id="src"></select></label>
+<label>Translate to<select id="dst"></select></label>
+<button id="startBtn" class="pri">▶ Start Listening</button>
+<button id="stopBtn" class="stop" disabled>■ Stop</button>
+<button id="recalBtn" class="sec" disabled>⟳ Recalibrate</button>
+</div>
+<div id="status">Idle. Enter your API key in Settings, then press Start.</div>
+<div class="prog" id="prog"><div></div></div>
+<canvas id="meter" width="960" height="46"></canvas>
+<div style="font-size:12px;color:var(--mut);margin-top:4px">Bar = voice-band level (300–3400 Hz) · <span style="color:#ffcc00">yellow</span> = noise floor · <span style="color:#ff5252">red</span> = squelch threshold</div>
+</div>
+
+<div class="card"><h2>Settings</h2>
+<div class="row"><label>ElevenLabs API key (stored only in this browser)<input id="key" type="password" placeholder="xi-api-key" autocomplete="off" style="min-width:320px"></label>
+<button class="lt" id="saveKey">Save key</button><button class="lt" id="forgetKey">Forget key</button></div>
+<details style="margin-top:12px"><summary>Advanced</summary><div class="row" style="margin-top:10px">
+<label>Hang time (squelch tail): <span id="hangV">1.5</span> s<input id="hang" type="range" min="0.8" max="3" step="0.1" value="1.5"></label>
+<label>Threshold margin: <span id="marV">9</span> dB<input id="mar" type="range" min="4" max="20" step="1" value="9"></label>
+</div></details></div>
+
+<div class="card"><h2>Transmission Log</h2>
+<div class="row" style="margin-bottom:10px"><button class="sec" id="dlAll">⬇ Download all (.zip)</button><button class="lt" id="clearAll">Clear all</button><span id="cnt" style="color:var(--mut);font-size:13px"></span></div>
+<div id="log"></div></div>
+</main>
+<footer>Audio clips are sent to ElevenLabs (speech-to-text) and text to Google Translate (fallback MyMemory) for processing. Boondock Echo DEMO · Not an official government website.</footer>
+<script>
+"use strict";
+const $=id=>document.getElementById(id);
+const SRC=[["","Auto detect"],["en","English"],["hi","Hindi"],["gu","Gujarati"],["fr","French"],["te","Telugu"],["mr","Marathi"],["ta","Tamil"],["bn","Bengali"],["ur","Urdu"],["pa","Punjabi"],["kn","Kannada"],["ml","Malayalam"],["es","Spanish"],["ar","Arabic"],["de","German"],["ru","Russian"],["zh","Chinese"],["ja","Japanese"]];
+const DST=[["","None"],["en","English"],["hi","Hindi"],["gu","Gujarati"],["te","Telugu"],["mr","Marathi"],["ta","Tamil"],["bn","Bengali"],["ur","Urdu"],["pa","Punjabi"],["kn","Kannada"],["ml","Malayalam"],["fr","French"],["es","Spanish"],["ar","Arabic"],["de","German"]];
+function fill(sel,arr,def,k){arr.forEach(([v,t])=>sel.add(new Option(t,v)));sel.value=localStorage.getItem(k)??def;sel.onchange=()=>localStorage.setItem(k,sel.value);}
+fill($("src"),SRC,"en","be_src");fill($("dst"),DST,"","be_dst");
+$("key").value=localStorage.getItem("be_key")||"";
+$("saveKey").onclick=()=>{localStorage.setItem("be_key",$("key").value.trim());setStatus("API key saved in this browser.");};
+$("forgetKey").onclick=()=>{localStorage.removeItem("be_key");$("key").value="";setStatus("API key removed.");};
+for(const [id,v] of [["hang","hangV"],["mar","marV"]]){const s=localStorage.getItem("be_"+id);if(s)$(id).value=s;$(v).textContent=$(id).value;$(id).oninput=()=>{$(v).textContent=$(id).value;localStorage.setItem("be_"+id,$(id).value);};}
+function setStatus(h){$("status").innerHTML=h;}
+
+/* ---------- IndexedDB ---------- */
+const WEEK=7*864e5;let db;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open("boondockEchoLive",1);r.onupgradeneeded=()=>r.result.createObjectStore("clips",{keyPath:"id"});r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function tx(mode){return db.transaction("clips",mode).objectStore("clips");}
+const put=c=>new Promise(r=>{const q=tx("readwrite").put(c);q.onsuccess=r;q.onerror=r;});
+const getAll=()=>new Promise(r=>{const q=tx("readonly").getAll();q.onsuccess=()=>r(q.result||[]);q.onerror=()=>r([]);});
+const del=id=>new Promise(r=>{const q=tx("readwrite").delete(id);q.onsuccess=r;q.onerror=r;});
+const clr=()=>new Promise(r=>{const q=tx("readwrite").clear();q.onsuccess=r;q.onerror=r;});
+
+/* ---------- Log UI ---------- */
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+const fmtT=t=>new Date(t).toLocaleString();
+function renderClip(c){let el=document.getElementById("c"+c.id);const isNew=!el;if(isNew){el=document.createElement("div");el.className="clip";el.id="c"+c.id;$("log").prepend(el);}
+ const url=el.dataset.url||URL.createObjectURL(c.audio);el.dataset.url=url;
+ el.innerHTML=`<div class="meta"><span>🕒 ${esc(fmtT(c.t))} · ${c.dur.toFixed(1)} s${c.lang?" · "+esc(c.lang):""}</span><span><button class="lt" data-a="dl">⬇ Download</button> <button class="lt" data-a="rm">✕</button></span></div>
+ <div class="tx">${c.text?esc(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}</div>${c.trans?`<div class="tr">↳ ${esc(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}<audio controls src="${url}"></audio>`;
+ el.querySelector('[data-a=dl]').onclick=()=>dlClip(c);el.querySelector('[data-a=rm]').onclick=async()=>{await del(c.id);URL.revokeObjectURL(url);el.remove();count();};count();}
+async function count(){const n=(await getAll()).length;$("cnt").textContent=n+" clip(s) stored";}
+function saveBlob(b,name){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
+const stamp=t=>new Date(t).toISOString().replace(/[:.]/g,"-").slice(0,19);
+function clipTxt(c){return `[${fmtT(c.t)}] (${c.dur.toFixed(1)}s)\n${c.text||""}\n${c.trans?"Translation ("+c.dst+"): "+c.trans+"\n":""}`;}
+async function dlClip(c){const enc=new TextEncoder();saveBlob(await zip([{name:`clip_${stamp(c.t)}.wav`,data:new Uint8Array(await c.audio.arrayBuffer())},{name:`clip_${stamp(c.t)}.txt`,data:enc.encode(clipTxt(c))}]),`boondock_clip_${stamp(c.t)}.zip`);}
+$("dlAll").onclick=async()=>{const cs=(await getAll()).sort((a,b)=>a.t-b.t);if(!cs.length)return alert("No clips stored.");const enc=new TextEncoder();
+ const csvq=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
+ const csv="\ufefftimestamp,duration_s,language,transcript,translation_lang,translation,audio_file\n"+cs.map(c=>[new Date(c.t).toISOString(),c.dur.toFixed(1),c.lang||"",c.text||"",c.dst||"",c.trans||"",`audio/clip_${stamp(c.t)}.wav`].map(csvq).join(",")).join("\n");
+ const files=[{name:"transcripts.txt",data:enc.encode(cs.map(clipTxt).join("\n"))},{name:"transcripts.csv",data:enc.encode(csv)}];
+ for(const c of cs)files.push({name:`audio/clip_${stamp(c.t)}.wav`,data:new Uint8Array(await c.audio.arrayBuffer())});
+ saveBlob(await zip(files),`boondock_echo_${stamp(Date.now())}.zip`);};
+$("clearAll").onclick=async()=>{if(!confirm("Delete all stored clips from this browser?"))return;await clr();$("log").innerHTML="";count();};
+
+/* ---------- Minimal ZIP (store) ---------- */
+const CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(d){let c=~0;for(let i=0;i<d.length;i++)c=CRC[(c^d[i])&255]^(c>>>8);return(~c)>>>0;}
+async function zip(files){const enc=new TextEncoder(),parts=[],cen=[];let off=0;const d=new Date();
+ const dt=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xffff,dd=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xffff;
+ for(const f of files){const nm=enc.encode(f.name),crc=crc32(f.data),sz=f.data.length;
+  const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(10,dt,true);h.setUint16(12,dd,true);h.setUint32(14,crc,true);h.setUint32(18,sz,true);h.setUint32(22,sz,true);h.setUint16(26,nm.length,true);
+  parts.push(h.buffer,nm,f.data);
+  const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(12,dt,true);c.setUint16(14,dd,true);c.setUint32(16,crc,true);c.setUint32(20,sz,true);c.setUint32(24,sz,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+  cen.push(c.buffer,nm);off+=30+nm.length+sz;}
+ const cl=cen.reduce((a,b)=>a+b.byteLength,0);const e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,cl,true);e.setUint32(16,off,true);
+ return new Blob([...parts,...cen,e.buffer],{type:"application/zip"});}
+
+/* ---------- WAV ---------- */
+function toWav(chunks,inRate,outRate=16000){let len=chunks.reduce((a,c)=>a+c.length,0);const all=new Float32Array(len);let o=0;for(const c of chunks){all.set(c,o);o+=c.length;}
+ const ratio=inRate/outRate,n=Math.floor(len/ratio),pcm=new Int16Array(n);
+ for(let i=0;i<n;i++){const s=Math.floor(i*ratio),e=Math.min(len,Math.floor((i+1)*ratio));let sum=0;for(let j=s;j<e;j++)sum+=all[j];const v=Math.max(-1,Math.min(1,sum/Math.max(1,e-s)));pcm[i]=v<0?v*32768:v*32767;}
+ const b=new DataView(new ArrayBuffer(44));const w=(p,s)=>{for(let i=0;i<s.length;i++)b.setUint8(p+i,s.charCodeAt(i));};
+ w(0,"RIFF");b.setUint32(4,36+n*2,true);w(8,"WAVE");w(12,"fmt ");b.setUint32(16,16,true);b.setUint16(20,1,true);b.setUint16(22,1,true);b.setUint32(24,outRate,true);b.setUint32(28,outRate*2,true);b.setUint16(32,2,true);b.setUint16(34,16,true);w(36,"data");b.setUint32(40,n*2,true);
+ return new Blob([b.buffer,pcm.buffer],{type:"audio/wav"});}
+
+/* ---------- STT + translate ---------- */
+async function stt(blob){const key=localStorage.getItem("be_key")||$("key").value.trim();if(!key)throw new Error("No API key — add it in Settings.");
+ let last;for(const model of ["scribe_v2","scribe_v1"]){const fd=new FormData();fd.append("file",blob,"clip.wav");fd.append("model_id",model);const lc=$("src").value;if(lc)fd.append("language_code",lc);
+  try{const r=await fetch("https://api.elevenlabs.io/v1/speech-to-text",{method:"POST",headers:{"xi-api-key":key},body:fd});
+   if(r.ok){const j=await r.json();return{text:(j.text||"").trim(),lang:j.language_code||lc};}
+   last=new Error("ElevenLabs "+r.status+": "+(await r.text()).slice(0,160));if(r.status===401)break;}catch(e){last=e;}}
+ throw last;}
+async function translate(text,tl,sl){if(!text||!tl)return"";
+ try{const r=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl||"auto"}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`);const j=await r.json();const s=j[0].map(x=>x[0]).join("");if(s)return s;}catch(e){}
+ try{const r=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,480))}&langpair=${(sl&&sl.length===2?sl:"en")}|${tl}`);const j=await r.json();return j.responseData.translatedText||"";}catch(e){return"(translation failed)";}}
+async function processClip(chunks,rate,t){const audio=toWav(chunks,rate);const dur=chunks.reduce((a,c)=>a+c.length,0)/rate;
+ const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,dur,audio,text:"",trans:"",dst:$("dst").value,status:"Transcribing…"};await put(c);renderClip(c);
+ try{const r=await stt(audio);c.text=r.text||"";c.lang=r.lang;c.status=c.text?"":"(no speech recognised)";
+  if(c.text&&c.dst){const sl=(c.lang||"").slice(0,2);if(sl!==c.dst)c.trans=await translate(c.text,c.dst,sl);}}catch(e){c.status="⚠ "+e.message;}
+ await put(c);renderClip(c);}
+
+/* ---------- Audio engine / smart squelch ---------- */
+let ctx,stream,src,node,an,fbuf,running=false,mode="idle";
+let calVals=[],calStart=0,floorDb=-90,lastDb=-120,preroll=[],preLen=0,clip=[],clipLen=0,clipT=0,aboveMs=0,silMs=0;
+const CAL_MS=6000;
+function thrDb(){return floorDb+ +$("mar").value;}
+function bandDb(){an.getFloatFrequencyData(fbuf);const hz=ctx.sampleRate/an.fftSize;const a=Math.floor(300/hz),b=Math.ceil(3400/hz);let s=0;for(let i=a;i<=b;i++)s+=Math.pow(10,fbuf[i]/10);return 10*Math.log10(s/(b-a+1)+1e-12);}
+function rmsDb(x){let s=0;for(let i=0;i<x.length;i++)s+=x[i]*x[i];return 20*Math.log10(Math.sqrt(s/x.length)+1e-9);}
+function startCal(){mode="cal";calVals=[];calStart=performance.now();$("prog").style.display="block";setStatus("🎧 Calibrating — keep the channel quiet for ~6 s while background noise is measured…");}
+function onChunk(x){const rate=ctx.sampleRate,ms=x.length/rate*1000;const bd=bandDb(),rd=rmsDb(x);const db=Math.max(bd,rd-6);lastDb=db;
+ if(mode==="cal"){calVals.push(db);const p=(performance.now()-calStart)/CAL_MS;$("prog").firstChild.style.width=Math.min(100,p*100)+"%";
+  if(p>=1){const s=[...calVals].sort((a,b)=>a-b);floorDb=s[Math.floor(s.length*0.6)]||-90;floorDb=Math.max(floorDb,-95);mode="idle";$("prog").style.display="none";setStatus(`✅ Calibrated. Noise floor ${floorDb.toFixed(1)} dB · threshold ${thrDb().toFixed(1)} dB. Listening for voice…`);}return;}
+ const thr=thrDb();
+ if(mode==="idle"){preroll.push(x);preLen+=x.length;while(preLen-preroll[0].length>=0.3*rate){preLen-=preroll.shift().length;}
+  if(db>thr){aboveMs+=ms;if(aboveMs>=150){mode="rec";clip=[...preroll];clipLen=preLen;clipT=Date.now()-Math.round(preLen/rate*1000);preroll=[];preLen=0;silMs=0;setStatus('<span class="rec">● Recording transmission…</span>');}}
+  else{aboveMs=0;if(db<thr-2)floorDb=floorDb*0.995+db*0.005;}return;}
+ if(mode==="rec"){clip.push(x);clipLen+=x.length;if(db>thr-3)silMs=0;else silMs+=ms;
+  if(silMs>=+$("hang").value*1000||clipLen>=60*rate)endClip();}}
+function endClip(){const rate=ctx.sampleRate;const dur=clipLen/rate;const c=clip,t=clipT;clip=[];clipLen=0;aboveMs=0;mode="idle";
+ if(dur<0.7){setStatus("Short burst ignored (&lt;0.7 s). Listening…");return;}
+ setStatus(`Clip captured (${dur.toFixed(1)} s) — sending for transcription. Listening…`);processClip(c,rate,t);}
+const WK=`class P extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(2048);this.n=0}process(i){const c=i[0]&&i[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.n++]=c[k];if(this.n===2048){this.port.postMessage(this.b.slice(0));this.n=0}}}return true}}registerProcessor('be-cap',P);`;
+async function start(){if(!(localStorage.getItem("be_key")||$("key").value.trim())){alert("Please enter and save your ElevenLabs API key in Settings first.");return;}
+ if($("key").value.trim())localStorage.setItem("be_key",$("key").value.trim());
+ try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});}catch(e){alert("Microphone access failed: "+e.message+"\nTip: allow mic access; in Chrome use http://localhost or file:// with permission.");return;}
+ ctx=new (window.AudioContext||window.webkitAudioContext)();await ctx.resume();src=ctx.createMediaStreamSource(stream);
+ an=ctx.createAnalyser();an.fftSize=2048;an.smoothingTimeConstant=0.2;fbuf=new Float32Array(an.frequencyBinCount);src.connect(an);
+ const mute=ctx.createGain();mute.gain.value=0;mute.connect(ctx.destination);
+ let ok=false;if(ctx.audioWorklet){for(const mk of [()=>URL.createObjectURL(new Blob([WK],{type:"application/javascript"})),()=>"data:application/javascript,"+encodeURIComponent(WK)]){
+   try{await ctx.audioWorklet.addModule(mk());node=new AudioWorkletNode(ctx,"be-cap");node.port.onmessage=e=>running&&onChunk(e.data);ok=true;break;}catch(e){}}}
+ if(!ok){node=ctx.createScriptProcessor(2048,1,1);node.onaudioprocess=e=>running&&onChunk(new Float32Array(e.inputBuffer.getChannelData(0)));}
+ src.connect(node);node.connect(mute);running=true;$("startBtn").disabled=true;$("stopBtn").disabled=false;$("recalBtn").disabled=false;startCal();draw();}
+function stop(){if(mode==="rec")endClip();running=false;mode="idle";try{node.disconnect();src.disconnect();}catch(e){}stream&&stream.getTracks().forEach(t=>t.stop());ctx&&ctx.close();
+ $("startBtn").disabled=false;$("stopBtn").disabled=true;$("recalBtn").disabled=true;$("prog").style.display="none";setStatus("Stopped.");}
+$("startBtn").onclick=start;$("stopBtn").onclick=stop;$("recalBtn").onclick=()=>{if(mode==="rec")endClip();startCal();};
+const cv=$("meter"),g=cv.getContext("2d");
+function draw(){const W=cv.width,H=cv.height,map=d=>Math.max(0,Math.min(1,(d+100)/100))*W;g.fillStyle="#10203d";g.fillRect(0,0,W,H);
+ if(running){const x=map(lastDb);const gr=g.createLinearGradient(0,0,W,0);gr.addColorStop(0,"#138808");gr.addColorStop(.7,"#ff9933");gr.addColorStop(1,"#c62828");g.fillStyle=gr;g.fillRect(0,8,x,H-16);
+  if(mode!=="cal"){g.fillStyle="#ffcc00";g.fillRect(map(floorDb)-1,0,3,H);g.fillStyle="#ff5252";g.fillRect(map(thrDb())-1,0,3,H);}
+  if(mode==="rec"){g.fillStyle="#ff5252";g.beginPath();g.arc(W-16,H/2,7,0,7);g.fill();}requestAnimationFrame(draw);}
+ g.fillStyle="#cfd8e8";g.font="12px Segoe UI";g.fillText(running?(mode==="cal"?"CALIBRATING":mode==="rec"?"RECORDING":"SQUELCH CLOSED"):"OFF",8,H/2+4);}
+(async()=>{try{db=await openDB();const cs=await getAll();const now=Date.now();for(const c of cs){if(now-c.t>WEEK)await del(c.id);}
+ (await getAll()).sort((a,b)=>a.t-b.t).forEach(renderClip);count();}catch(e){setStatus("Storage unavailable: "+e.message);}draw();})();
+</script></body></html>
