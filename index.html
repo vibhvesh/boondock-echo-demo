@@ -75,7 +75,7 @@ mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weigh
 <div class="plate"><div class="brand">BOONDOCK ECHO<small>LIVE RADIO TRANSCRIPTION</small></div><div class="tri"></div><span class="demo">DEMO</span><button class="gear" id="gearBtn" title="Settings" aria-label="Settings">⚙</button></div>
 <div class="lcd">
  <div class="strip"><canvas id="meter" width="900" height="56"></canvas><div class="prog" id="prog"><div></div></div><div id="status">Idle. Enter your API key in Settings, then press Start.</div></div>
- <div class="lh"><span>◂ RX LOG · NEWEST FIRST</span><span><span id="sess">SESSION —</span> <span id="cnt"></span><span id="drv" class="drv off" title="Google Drive">DRIVE</span></span></div>
+ <div class="lh"><span>◂ RX LOG · NEWEST FIRST</span><span><span id="devLine" style="font-size:10px"></span> <span id="sess">SESSION —</span> <span id="cnt"></span><span id="drv" class="drv off" title="Google Drive">DRIVE</span></span></div>
  <div id="kwBar"></div>
  <div id="log"></div>
 </div>
@@ -99,6 +99,12 @@ mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weigh
  <label id="gdAutoL" style="display:none"><input type="checkbox" id="gdAuto"> Auto-save to Drive</label>
  <div id="gdInfo" style="font-size:10px"></div>
  <div style="font-size:10px">Files go to <b>your own</b> Google Drive (folder "Boondock Echo/&lt;date&gt;/&lt;session&gt;/"). This app only sees files it created.</div></div>
+ <div class="sect"><b>STATION / DEVICE</b>
+ <label>Handset / Device ID<input id="devId" type="text" placeholder="e.g. HT-07 / VU2ABC" maxlength="40"></label>
+ <div class="row"><label>Latitude<input id="devLat" type="text" inputmode="decimal" placeholder="28.6139"></label><label>Longitude<input id="devLon" type="text" inputmode="decimal" placeholder="77.2090"></label></div>
+ <label>Place label (optional)<input id="devLbl" type="text" placeholder="e.g. Post 3, Leh" maxlength="60"></label>
+ <div class="row"><button class="lt" id="devGeo">📍 Use current location</button><button class="sec" id="devSave">Save station</button></div>
+ <div id="devInfo" style="font-size:10px"></div></div>
  <div class="sect"><b>KEYWORD ALERTS</b>
  <label>Keywords (comma or newline separated, case-insensitive)<textarea id="kwList" rows="4"></textarea></label>
  <div class="row"><button class="lt" id="kwSave">Save keywords</button><button class="lt" id="kwReset">Restore defaults</button></div>
@@ -140,7 +146,7 @@ function renderClip(c){let el=document.getElementById("c"+c.id);const isNew=!el;
  el.classList.toggle("alert",!!(c.kw&&c.kw.length));
  const url=el.dataset.url||URL.createObjectURL(c.audio);el.dataset.url=url;
  el.innerHTML=`<div class="meta"><span>${c.kw&&c.kw.length?'<span class="abadge">⚠ ALERT</span> ':""}🕒 ${esc(fmtT(c.t))} · ${c.dur.toFixed(1)} s${c.lang?" · "+esc(c.lang):""}</span><span><button class="lt" data-a="dl">⬇ Download</button> <button class="lt" data-a="rm">✕</button></span></div>
- <div class="tx">${c.text?hl(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${hl(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}${c.em?`<div class="em ${c.em.st}">✉ ${esc(c.em.msg)}</div>`:""}<audio controls src="${url}"></audio>`;
+ <div class="tx">${c.text?hl(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${hl(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}${c.kw&&c.kw.length?`<div class="em pend">📟 ${esc(c.dev?.id||"—")}${mapUrl(c.dev)?` · 📍 ${esc(c.dev.lat)}, ${esc(c.dev.lon)}${c.dev.lbl?" ("+esc(c.dev.lbl)+")":""} · <a href="${esc(mapUrl(c.dev))}" target="_blank" rel="noopener" style="color:var(--lcdt)">Google Maps</a>`:" · no location"}</div>`:""}${c.em?`<div class="em ${c.em.st}">✉ ${esc(c.em.msg)}</div>`:""}<audio controls src="${url}"></audio>`;
  el.querySelector('[data-a=dl]').onclick=()=>dlClip(c);el.querySelector('[data-a=rm]').onclick=async()=>{await del(c.id);URL.revokeObjectURL(url);el.remove();count();};count();}
 async function count(){const n=(await getAll()).length;$("cnt").textContent=n+" clip(s) stored";}
 function saveBlob(b,name){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
@@ -187,7 +193,7 @@ async function translate(text,tl,sl){if(!text||!tl)return"";
  try{const r=await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl||"auto"}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`);const j=await r.json();const s=j[0].map(x=>x[0]).join("");if(s)return s;}catch(e){}
  try{const r=await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.slice(0,480))}&langpair=${(sl&&sl.length===2?sl:"en")}|${tl}`);const j=await r.json();return j.responseData.translatedText||"";}catch(e){return"(translation failed)";}}
 async function processClip(chunks,rate,t){const audio=toWav(chunks,rate);const dur=chunks.reduce((a,c)=>a+c.length,0)/rate;
- const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,session:sessionId,dur,audio,text:"",trans:"",dst:$("dst").value,status:"Transcribing…"};await put(c);renderClip(c);
+ const c={id:t+"_"+Math.random().toString(36).slice(2,6),t,session:sessionId,dur,audio,text:"",trans:"",dst:$("dst").value,dev:devGet(),status:"Transcribing…"};await put(c);renderClip(c);
  try{const r=await stt(audio);c.text=r.text||"";c.lang=r.lang;c.status=c.text?"":"(no speech recognised)";
   if(c.text&&c.dst){const sl=(c.lang||"").slice(0,2);if(sl!==c.dst)c.trans=await translate(c.text,c.dst,sl);}}catch(e){c.status="⚠ "+e.message;}
  c.kw=kwMatch((c.text||"")+"\n"+(c.trans||""));if(c.kw.length){kwHit(c.kw);if(localStorage.getItem("be_emon")!=="0")emEnqueue(c);}
@@ -273,11 +279,11 @@ const csvq=s=>'"'+String(s??"").replace(/"/g,'""')+'"';
 async function gdOne(c){const d=new Date(c.t),day=ymd(d),sess=c.session||("S-"+day.replace(/-/g,"")+"-000000-none"),base=`${day}_${hms(d)}_${sess}`;
  const root=await gdFolder("Boondock Echo"),df=await gdFolder(day,root),sf=await gdFolder(sess,df);
  if(!c.driveWav){c.driveWav=await gdUpload(base+".wav",sf,c.audio,"audio/wav");await put(c);}
- const txt=`Timestamp: ${d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})} IST (${d.toISOString()})\nSession ID: ${sess}\nDuration: ${c.dur.toFixed(1)} s\nSource language: ${c.lang||$("src").value||"auto"}\nTranscript: ${c.text||c.status||""}\nTranslation${c.dst?" ("+c.dst+")":""}: ${c.trans||""}\n`;
+ const txt=`Timestamp: ${d.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"})} IST (${d.toISOString()})\nSession ID: ${sess}\nDevice ID: ${(c.dev||{}).id||""}\nLocation: ${devLoc(c.dev||{})}\nGoogle Maps: ${mapUrl(c.dev||{})}\nKeywords: ${(c.kw||[]).join(", ")}\nDuration: ${c.dur.toFixed(1)} s\nSource language: ${c.lang||$("src").value||"auto"}\nTranscript: ${c.text||c.status||""}\nTranslation${c.dst?" ("+c.dst+")":""}: ${c.trans||""}\n`;
  await gdUpload(base+".txt",sf,new Blob([txt],{type:"text/plain"}),"text/plain");
  // session.csv: rebuild from all local clips of this session, create or PATCH
  const rows=(await getAll()).filter(x=>x.session===sess&&(x.drive||x.id===c.id)).sort((a,b)=>a.t-b.t);
- const csv="\ufefftimestamp_ist,session_id,duration_s,source_lang,transcript,translation_lang,translation,audio_file\n"+rows.map(x=>{const xd=new Date(x.t);return[xd.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}),sess,x.dur.toFixed(1),x.lang||"",x.text||x.status||"",x.dst||"",x.trans||"",`${ymd(xd)}_${hms(xd)}_${sess}.wav`].map(csvq).join(",");}).join("\n");
+ const csv="\ufefftimestamp_ist,session_id,duration_s,source_lang,transcript,translation_lang,translation,audio_file,device_id,lat,lon,place_label,maps_link,keywords\n"+rows.map(x=>{const xd=new Date(x.t),xv=x.dev||{};return[xd.toLocaleString("en-IN",{timeZone:"Asia/Kolkata"}),sess,x.dur.toFixed(1),x.lang||"",x.text||x.status||"",x.dst||"",x.trans||"",`${ymd(xd)}_${hms(xd)}_${sess}.wav`,xv.id||"",xv.lat??"",xv.lon??"",xv.lbl||"",mapUrl(xv),(x.kw||[]).join(" ")].map(csvq).join(",");}).join("\n");
  const cb=new Blob([csv],{type:"text/csv"});
  if(!gdCsv[sess]){const q=`name='session.csv' and '${sf}' in parents and trashed=false`;const j=await gdFetch("https://www.googleapis.com/drive/v3/files?fields=files(id)&q="+encodeURIComponent(q));gdCsv[sess]=j.files&&j.files[0]&&j.files[0].id;}
  if(gdCsv[sess])await gdFetch(`https://www.googleapis.com/upload/drive/v3/files/${gdCsv[sess]}?uploadType=media&fields=id`,{method:"PATCH",headers:{"Content-Type":"text/csv"},body:cb});
@@ -289,6 +295,20 @@ async function gdKick(){if(gdBusy||!gdQ.length||gdNeedReconnect||localStorage.ge
  gdBusy=false;gdUI();}
 setInterval(gdKick,60000);
 gdUI();
+
+/* ---------- Station / Device ---------- */
+function devGet(){try{return JSON.parse(localStorage.getItem("be_dev")||"{}");}catch(e){return{};}}
+function mapUrl(d){return d&&d.lat!==""&&d.lat!=null&&d.lon!==""&&d.lon!=null?`https://maps.google.com/?q=${d.lat},${d.lon}`:"";}
+function devLoc(d){return mapUrl(d)?`${d.lat}, ${d.lon}${d.lbl?" ("+d.lbl+")":""}`:(d.lbl||"not set");}
+function devUI(){const d=devGet();$("devId").value=d.id||"";$("devLat").value=d.lat??"";$("devLon").value=d.lon??"";$("devLbl").value=d.lbl||"";
+ $("devLine").textContent="📟 "+(d.id||"NO-ID")+(mapUrl(d)?" · 📍"+(d.lbl||(+d.lat).toFixed(3)+","+(+d.lon).toFixed(3)):"")+" ·";}
+$("devSave").onclick=()=>{const la=$("devLat").value.trim(),lo=$("devLon").value.trim();
+ if((la||lo)&&!(la!==""&&lo!==""&&isFinite(la)&&isFinite(lo)&&Math.abs(+la)<=90&&Math.abs(+lo)<=180)){$("devInfo").textContent="⚠ Invalid lat/lon (lat −90..90, lon −180..180).";return;}
+ localStorage.setItem("be_dev",JSON.stringify({id:$("devId").value.trim(),lat:la,lon:lo,lbl:$("devLbl").value.trim()}));devUI();$("devInfo").textContent="✓ Station saved.";};
+$("devGeo").onclick=()=>{if(!navigator.geolocation){$("devInfo").textContent="⚠ Geolocation not supported.";return;}$("devInfo").textContent="Locating…";
+ navigator.geolocation.getCurrentPosition(p=>{$("devLat").value=p.coords.latitude.toFixed(6);$("devLon").value=p.coords.longitude.toFixed(6);$("devInfo").textContent=`📍 Got fix (±${Math.round(p.coords.accuracy)} m) — tap Save station.`;},
+  e=>{$("devInfo").textContent="⚠ Location failed: "+e.message;},{enableHighAccuracy:true,timeout:15000,maximumAge:0});};
+devUI();
 
 /* ---------- Settings modal ---------- */
 $("gearBtn").onclick=()=>$("setModal").classList.add("on");$("setClose").onclick=()=>$("setModal").classList.remove("on");
@@ -321,8 +341,8 @@ const utf8b64=s=>{const b=new TextEncoder().encode(s);let r="";for(let i=0;i<b.l
 async function blobB64(b){const u=new Uint8Array(await b.arrayBuffer());let r="";for(let i=0;i<u.length;i+=0x8000)r+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(r);}
 const wrap76=s=>s.replace(/.{1,76}/g,"$&\r\n");
 async function buildMime(c){const to=localStorage.getItem("be_emto")||"vibhvesh@gmail.com",sess=c.session||"no-session",when=istStr(c.t),kw=(c.kw||[]).join(", ");
- const subj=`Boondock Echo ALERT: ${kw} - ${when} - ${sess}`,b="be"+Math.random().toString(36).slice(2);
- const body=`BOONDOCK ECHO KEYWORD ALERT (DEMO)\n\nKeywords: ${kw}\nTimestamp: ${when} (${new Date(c.t).toISOString()})\nSession ID: ${sess}\nDuration: ${c.dur.toFixed(1)} s\nSource language: ${c.lang||"auto"}\n\nTranscript:\n${c.text||""}\n\nTranslation${c.dst?" ("+c.dst+")":""}:\n${c.trans||"(none)"}\n\nAudio clip attached (WAV).\n`;
+ const dv=c.dev||{};const subj=`Boondock Echo ALERT: ${kw} - ${when} - ${sess} - ${dv.id||"no-device"}`,b="be"+Math.random().toString(36).slice(2);
+ const body=`BOONDOCK ECHO KEYWORD ALERT (DEMO)\n\nKeywords: ${kw}\nTimestamp: ${when} (${new Date(c.t).toISOString()})\nSession ID: ${sess}\nDevice ID: ${dv.id||"—"}\nLocation: ${devLoc(dv)}\nGoogle Maps: ${mapUrl(dv)||"—"}\nDuration: ${c.dur.toFixed(1)} s\nSource language: ${c.lang||"auto"}\n\nTranscript:\n${c.text||""}\n\nTranslation${c.dst?" ("+c.dst+")":""}:\n${c.trans||"(none)"}\n\nAudio clip attached (WAV).\n`;
  const fn=`${ymd(new Date(c.t))}_${hms(new Date(c.t))}_${sess}.wav`;
  const mime=`To: ${to}\r\nSubject: =?UTF-8?B?${utf8b64(subj)}?=\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${b}"\r\n\r\n--${b}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(utf8b64(body))}--${b}\r\nContent-Type: audio/wav; name="${fn}"\r\nContent-Disposition: attachment; filename="${fn}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(await blobB64(c.audio))}--${b}--\r\n`;
  return b64u(utf8b64(mime));}
