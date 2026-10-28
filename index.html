@@ -69,6 +69,8 @@ mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weigh
 .clip.alert{border-left:5px solid #ff3b2f;background:#ff3b2f26;box-shadow:0 0 0 1px #ff3b2f88,0 0 14px #ff3b2f55}
 .abadge{color:#fff;background:#ff3b2f;border-radius:4px;padding:0 5px;font-weight:800;font-size:10px;letter-spacing:1px}
 .em{font-size:11px;margin-top:3px}.em.ok{color:#7fe07a}.em.err{color:#ff8a80}.em.pend{color:var(--amb)}
+#emBanner{display:none;margin:4px 0;padding:8px;border-radius:8px;background:#ff3b2f;color:#fff;font-weight:800;font-size:12px;text-align:center;cursor:pointer;animation:bl 1.6s infinite;font-family:"Segoe UI",Roboto,sans-serif}
+.em button{background:#ffb43a;color:#1a1000;border:0;border-radius:6px;padding:4px 8px;font-weight:800;font-size:11px;margin-left:4px}
 </style><script src="https://accounts.google.com/gsi/client" async defer></script></head><body>
 <div class="radio"><div class="ant"></div><div class="knob"></div>
 <div class="body">
@@ -76,6 +78,7 @@ mark.kw{background:#ff3b2f;color:#fff;padding:0 3px;border-radius:3px;font-weigh
 <div class="lcd">
  <div class="strip"><canvas id="meter" width="900" height="56"></canvas><div class="prog" id="prog"><div></div></div><div id="status">Idle. Enter your API key in Settings, then press Start.</div></div>
  <div class="lh"><span>◂ RX LOG · NEWEST FIRST</span><span><span id="devLine" style="font-size:10px"></span> <span id="sess">SESSION —</span> <span id="cnt"></span><span id="drv" class="drv off" title="Google Drive">DRIVE</span></span></div>
+ <div id="emBanner" role="button">✉ Email alerts paused — tap to connect Google</div>
  <div id="kwBar"></div>
  <div id="log"></div>
 </div>
@@ -146,8 +149,8 @@ function renderClip(c){let el=document.getElementById("c"+c.id);const isNew=!el;
  el.classList.toggle("alert",!!(c.kw&&c.kw.length));
  const url=el.dataset.url||URL.createObjectURL(c.audio);el.dataset.url=url;
  el.innerHTML=`<div class="meta"><span>${c.kw&&c.kw.length?'<span class="abadge">⚠ ALERT</span> ':""}🕒 ${esc(fmtT(c.t))} · ${c.dur.toFixed(1)} s${c.lang?" · "+esc(c.lang):""}</span><span><button class="lt" data-a="dl">⬇ Download</button> <button class="lt" data-a="rm">✕</button></span></div>
- <div class="tx">${c.text?hl(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${hl(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}${c.kw&&c.kw.length?`<div class="em pend">📟 ${esc(c.dev?.id||"—")}${mapUrl(c.dev)?` · 📍 ${esc(c.dev.lat)}, ${esc(c.dev.lon)}${c.dev.lbl?" ("+esc(c.dev.lbl)+")":""} · <a href="${esc(mapUrl(c.dev))}" target="_blank" rel="noopener" style="color:var(--lcdt)">Google Maps</a>`:" · no location"}</div>`:""}${c.em?`<div class="em ${c.em.st}">✉ ${esc(c.em.msg)}</div>`:""}<audio controls src="${url}"></audio>`;
- el.querySelector('[data-a=dl]').onclick=()=>dlClip(c);el.querySelector('[data-a=rm]').onclick=async()=>{await del(c.id);URL.revokeObjectURL(url);el.remove();count();};count();}
+ <div class="tx">${c.text?hl(c.text):'<i style="color:#888">'+esc(c.status||"Transcribing…")+'</i>'}${c.drive?'<span class="dck" title="Saved to Google Drive">✓☁</span>':""}</div>${c.trans?`<div class="tr">↳ ${hl(c.trans)} <small>(${esc(c.dst)})</small></div>`:""}${c.kw&&c.kw.length?`<div class="em pend">📟 ${esc(c.dev?.id||"—")}${mapUrl(c.dev)?` · 📍 ${esc(c.dev.lat)}, ${esc(c.dev.lon)}${c.dev.lbl?" ("+esc(c.dev.lbl)+")":""} · <a href="${esc(mapUrl(c.dev))}" target="_blank" rel="noopener" style="color:var(--lcdt)">Google Maps</a>`:" · no location"}</div>`:""}${c.em?`<div class="em ${c.em.st}">✉ ${esc(c.em.msg)}${c.emPending&&!gTokOK()?' <button data-a="gc">Connect Google &amp; send</button>':""}${c.em.hint?`<br><small>💡 ${esc(c.em.hint)}</small>`:""}</div>`:""}<audio controls src="${url}"></audio>`;
+ el.querySelector('[data-a=dl]').onclick=()=>dlClip(c);const gcb=el.querySelector('[data-a=gc]');if(gcb)gcb.onclick=googleConnect;el.querySelector('[data-a=rm]').onclick=async()=>{await del(c.id);URL.revokeObjectURL(url);el.remove();count();};count();}
 async function count(){const n=(await getAll()).length;$("cnt").textContent=n+" clip(s) stored";}
 function saveBlob(b,name){const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1500);}
 const stamp=t=>new Date(t).toISOString().replace(/[:.]/g,"-").slice(0,19);
@@ -251,17 +254,18 @@ const ymd=d=>`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`,hms=d
 function newSession(){const d=new Date();sessionId=`S-${ymd(d).replace(/-/g,"")}-${hms(d).replace(/-/g,"")}-${Math.random().toString(36).slice(2,6)}`;$("sess").textContent="SESSION "+sessionId;}
 const GD_CID="296319479317-gaavhft9vjr3ci349v3udtvv236pbbnr.apps.googleusercontent.com",GD_SCOPE="https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/gmail.send";
 let gmailOK=false,gdTok=null,gdExp=0,gdClient=null,gdPending=null,gdQ=[],gdBusy=false,gdNeedReconnect=false;const gdFolders={},gdCsv={};
-function gdInd(st){const e=$("drv");e.className="drv "+st;e.title="Google Drive: "+({off:"off",ok:"connected",up:"uploading",err:"error"})[st];}
+function gdInd(st){const e=$("drv");e.className="drv "+st;try{emBanner();}catch(e){}e.title="Google Drive: "+({off:"off",ok:"connected",up:"uploading",err:"error"})[st];}
 function gdUI(){const on=localStorage.getItem("be_gd")==="1";$("gdLbl").textContent=gdNeedReconnect?"Reconnect Drive":on?"Drive connected ✓":"Connect Google (Drive + Gmail)";
  $("gdDisc").style.display=on?"":"none";$("gdAutoL").style.display=on?"":"none";$("gdAuto").checked=localStorage.getItem("be_gdauto")!=="0";
  $("gdInfo").textContent=gdQ.length?gdQ.length+" upload(s) queued":"";gdInd(!on?"off":gdNeedReconnect?"err":gdBusy?"up":"ok");}
 function gdInit(){if(gdClient)return true;if(!(window.google&&google.accounts&&google.accounts.oauth2))return false;
  gdClient=google.accounts.oauth2.initTokenClient({client_id:GD_CID,scope:GD_SCOPE,callback:r=>{const p=gdPending;gdPending=null;
-  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;gmailOK=google.accounts.oauth2.hasGrantedAllScopes(r,"https://www.googleapis.com/auth/gmail.send");gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);},
+  if(r.error){p&&p.rej(new Error(r.error));return;}gdTok=r.access_token;gmailOK=google.accounts.oauth2.hasGrantedAllScopes(r,"https://www.googleapis.com/auth/gmail.send");gdExp=Date.now()+(r.expires_in-60)*1000;gdNeedReconnect=false;localStorage.setItem("be_gd","1");gdUI();p&&p.res(gdTok);setTimeout(()=>{emRequeue();emKick();},0);},
   error_callback:e=>{const p=gdPending;gdPending=null;p&&p.rej(new Error(e.type||"popup error"));}});return true;}
 function gdRequest(prompt){return new Promise((res,rej)=>{if(!gdInit())return rej(new Error("Google sign-in library not loaded"));gdPending={res,rej};gdClient.requestAccessToken({prompt});});}
 async function gdToken(){if(gdTok&&Date.now()<gdExp)return gdTok;try{return await gdRequest("");}catch(e){gdNeedReconnect=true;gdUI();setStatus('⚠ Google Drive session expired — open Settings and tap <b>Reconnect Drive</b>.');throw e;}}
-$("gdConn").onclick=async()=>{try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google connected. Drive auto-save on"+(gmailOK?" · Gmail alerts ready.":" · ⚠ Gmail send permission not granted."));gdKick();emKick();}catch(e){setStatus("⚠ Drive connect failed: "+esc(e.message));}gdUI();};
+$("gdConn").onclick=()=>googleConnect();
+async function googleConnect(){try{await gdRequest(gdNeedReconnect||!gdTok?"consent":"");setStatus("☁ Google connected. Drive auto-save on"+(gmailOK?" · Gmail alerts ready.":" · ⚠ Gmail send permission not granted."));gdKick();emKick();}catch(e){setStatus("⚠ Google connect failed: "+esc(e.message));}gdUI();}
 $("gdDisc").onclick=()=>{if(gdTok&&window.google)try{google.accounts.oauth2.revoke(gdTok,()=>{});}catch(e){}gdTok=null;gdExp=0;gdNeedReconnect=false;localStorage.removeItem("be_gd");gmailOK=false;gdUI();setStatus("Google Drive disconnected.");};
 $("gdAuto").onchange=()=>{localStorage.setItem("be_gdauto",$("gdAuto").checked?"1":"0");gdKick();};
 async function gdFetch(url,opt={}){const t=await gdToken();opt.headers=Object.assign({},opt.headers,{Authorization:"Bearer "+t});const r=await fetch(url,opt);
@@ -346,13 +350,34 @@ async function buildMime(c){const to=localStorage.getItem("be_emto")||"vibhvesh@
  const fn=`${ymd(new Date(c.t))}_${hms(new Date(c.t))}_${sess}.wav`;
  const mime=`To: ${to}\r\nSubject: =?UTF-8?B?${utf8b64(subj)}?=\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary="${b}"\r\n\r\n--${b}\r\nContent-Type: text/plain; charset=UTF-8\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(utf8b64(body))}--${b}\r\nContent-Type: audio/wav; name="${fn}"\r\nContent-Disposition: attachment; filename="${fn}"\r\nContent-Transfer-Encoding: base64\r\n\r\n${wrap76(await blobB64(c.audio))}--${b}--\r\n`;
  return b64u(utf8b64(mime));}
-async function emSend(c){if(!gdTok&&localStorage.getItem("be_gd")!=="1")throw new Error("Google not connected — open ⚙ Settings → Connect Google");
- const t=await gdToken();const r=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+t,"Content-Type":"application/json"},body:JSON.stringify({raw:await buildMime(c)})});
- if(r.status===401)gdTok=null;if(!r.ok)throw new Error("Gmail "+r.status+": "+(await r.text()).slice(0,140));}
-function emEnqueue(c){c.em={st:"pend",msg:"Email alert queued → "+(localStorage.getItem("be_emto")||"vibhvesh@gmail.com")};c.emTry=0;if(!emQ.find(x=>x.id===c.id))emQ.push(c);setTimeout(emKick,0);}
-async function emKick(){if(emBusy||!emQ.length)return;emBusy=true;
- while(emQ.length){const c=emQ.shift();try{c.em={st:"pend",msg:"Sending email alert…"};renderClip(c);await emSend(c);c.em={st:"ok",msg:"Email alert sent to "+(localStorage.getItem("be_emto")||"")+" · "+istStr(Date.now())};}
-  catch(e){c.emTry=(c.emTry||0)+1;if(c.emTry<2){c.em={st:"pend",msg:"Email failed ("+e.message+") — retrying once in 15 s…"};setTimeout(()=>{emQ.push(c);emKick();},15000);}else c.em={st:"err",msg:"Email alert failed: "+e.message};}
-  await put(c);renderClip(c);}
- emBusy=false;}
+let emCur=null;function gTokOK(){return !!(gdTok&&Date.now()<gdExp);}
+const emTo=()=>localStorage.getItem("be_emto")||"vibhvesh@gmail.com";
+function emBanner(){const on=$("emOn")&&$("emOn").checked;$("emBanner").style.display=on&&!gTokOK()?"block":"none";
+ const n=emQ.length;$("emBanner").textContent=n?`✉ Email alerts paused (${n} queued) — tap to connect Google`:"✉ Email alerts paused — tap to connect Google";}
+$("emBanner").onclick=googleConnect;
+async function gmailErr(r){const t=await r.text();let m=t.slice(0,200),reason="";try{const j=JSON.parse(t).error;m=j.message||m;reason=(j.errors&&j.errors[0]&&j.errors[0].reason)||j.status||"";}catch(e){}
+ const er=new Error(`Gmail ${r.status}${reason?" "+reason:""}: ${m}`);
+ er.hint=r.status===403&&/disabled|not been used|accessNotConfigured|SERVICE_DISABLED/i.test(t)?"Enable the Gmail API in the same Google Cloud project (APIs & Services → Library → Gmail API → Enable), wait a few minutes, then retry."
+  :r.status===403?"Gmail send permission missing: add the gmail.send scope on the OAuth consent screen, then Disconnect + Connect Google and approve Gmail."
+  :r.status===401?"Google session expired — tap Connect Google & send.":r.status===400?"Bad request — check the alert recipient address in Settings.":"";
+ return er;}
+async function emSend(c){const r=await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send",{method:"POST",headers:{Authorization:"Bearer "+gdTok,"Content-Type":"application/json"},body:JSON.stringify({raw:await buildMime(c)})});
+ if(r.status===401){gdTok=null;gdExp=0;}if(!r.ok)throw await gmailErr(r);}
+async function emEnqueue(c){c.emPending=true;c.emTry=0;c.em={st:"pend",msg:"Email alert queued → "+emTo()+(gTokOK()?"":" · Google not connected")};
+ if(!emQ.find(x=>x.id===c.id))emQ.push(c);await put(c);emBanner();setTimeout(emKick,0);}
+async function emRequeue(){if(!db)return;for(const c of await getAll())if(c.emPending&&c.id!==emCur&&!emQ.find(x=>x.id===c.id))emQ.push(c);emBanner();}
+async function emKick(){emBanner();if(emBusy||!emQ.length)return;
+ if(!gTokOK()){for(const c of emQ){c.em={st:"pend",msg:"Email alert queued → "+emTo()+" · Google not connected"};renderClip(c);}return;}
+ if(!gmailOK){for(const c of emQ){c.em={st:"err",msg:"Queued — Gmail send permission not granted",hint:"Add the gmail.send scope on the OAuth consent screen, then Disconnect + Connect Google and tick the Gmail permission."};renderClip(c);}return;}
+ emBusy=true;
+ while(emQ.length&&gTokOK()){const c=emQ.shift();if(!c.emPending)continue;emCur=c.id;try{c.em={st:"pend",msg:"Sending email alert…"};renderClip(c);await emSend(c);c.emPending=false;c.em={st:"ok",msg:"Email alert sent to "+emTo()+" · "+istStr(Date.now())};}
+  catch(e){c.emTry=(c.emTry||0)+1;
+   if(!gTokOK()){c.em={st:"err",msg:e.message,hint:e.hint};emQ.push(c);}
+   else if(c.emTry<2){c.em={st:"pend",msg:e.message+" — retrying once in 15 s…",hint:e.hint};setTimeout(()=>{emQ.push(c);emKick();},15000);}
+   else{c.emPending=false;c.em={st:"err",msg:"Email alert failed: "+e.message,hint:e.hint};}}
+  await put(c);renderClip(c);emCur=null;}
+ emBusy=false;emBanner();}
+$("emOn").addEventListener("change",emBanner);
+(function w(){if(db){emRequeue().then(emKick);}else setTimeout(w,200);})();
+emBanner();
 </script></body></html>
