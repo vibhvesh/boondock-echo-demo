@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16181b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Morse Radio">
+<meta name="description" content="Manual-PTT Morse and voice radio. Text, pictures, and speech over a real radio using only the browser.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/radio.css?v=6">
+<title>Boondock Morse Radio</title>
+</head>
+<body>
+<div class="radio">
+  <div class="ant"></div>
+  <div class="knob"></div>
+  <div class="body">
+    <div class="plate">
+      <div class="brand">BOONDOCK<small>MORSE RADIO · MANUAL PTT</small></div>
+      <div class="tri"></div>
+      <span class="badge">CW</span>
+      <button class="gear" id="gearBtn" type="button" aria-label="Settings">⚙</button>
+    </div>
+    <div class="lcd">
+      <div class="strip">
+        <div class="topline">
+          <div class="lamp" id="lamp"><span class="bulb" aria-hidden="true"></span><span id="lampText">STANDBY</span></div>
+          <span id="est" class="est"></span>
+        </div>
+        <canvas id="meter" width="900" height="56" aria-hidden="true"></canvas>
+        <div class="prog" id="prog" hidden><div id="progBar"></div></div>
+        <div id="status" role="status">Ready. You hold the radio PTT — this page only plays sound.</div>
+      </div>
+      <div class="modes" role="tablist">
+        <button type="button" class="mode on" data-mode="cw" role="tab">CW TX</button>
+        <button type="button" class="mode" data-mode="img" role="tab">IMAGE</button>
+        <button type="button" class="mode" data-mode="voice" role="tab">VOICE</button>
+        <button type="button" class="mode" data-mode="rx" role="tab">RECEIVE</button>
+        <button type="button" class="mode" data-mode="log" role="tab">LOG</button>
+      </div>
+      <div class="idbar">
+        <label>CALLSIGN<input id="callsign" type="text" maxlength="16" placeholder="optional" autocomplete="off"></label>
+        <label>END PROSIGN
+          <select id="prosign">
+            <option value="">None</option>
+            <option value="AR">AR</option>
+            <option value="SK">SK</option>
+          </select>
+        </label>
+        <label>PTT WAIT <span id="pttV">3</span> s
+          <input id="ptt" type="range" min="0" max="15" step="1" value="3">
+        </label>
+      </div>
+      <div class="views">
+        <section id="view-cw" class="view">
+          <label>MESSAGE
+            <textarea id="cwText" maxlength="4000">CQ CQ DE MORSE RADIO</textarea>
+          </label>
+          <div id="skipped" class="warn" hidden></div>
+          <div id="morsePrev" class="morse" aria-label="Morse preview"></div>
+          <div class="row">
+            <label>WPM <span id="wpmV">18</span><input id="wpm" type="range" min="5" max="40" step="1" value="18"></label>
+            <label>FARNSWORTH <span id="fwV">18</span><input id="fw" type="range" min="5" max="40" step="1" value="18"></label>
+          </div>
+          <p id="fwHint" class="hint">Equal to WPM — standard spacing. Raise Farnsworth to keep the characters fast and the gaps slow.</p>
+          <div class="row">
+            <label>TONE <span id="freqV">600</span> Hz<input id="freq" type="range" min="400" max="1200" step="10" value="600"></label>
+            <label>VOLUME <span id="volV">70</span><input id="vol" type="range" min="5" max="100" step="1" value="70"></label>
+          </div>
+        </section>
+        <section id="view-img" class="view" hidden>
+          <div class="row">
+            <label class="file">UPLOAD<input id="imgFile" type="file" accept="image/*"></label>
+            <label class="file">CAMERA<input id="imgCam" type="file" accept="image/*" capture="environment"></label>
+            <button type="button" class="lt" id="testCard">TEST CARD</button>
+          </div>
+          <div class="row">
+            <label>GRID
+              <select id="res">
+                <option>8</option>
+                <option selected>16</option>
+                <option>24</option>
+                <option>32</option>
+                <option>48</option>
+                <option>64</option>
+              </select>
+            </label>
+            <label>THRESHOLD <span id="thrV">128</span>
+              <input id="thr" type="range" min="1" max="254" step="1" value="128">
+            </label>
+          </div>
+          <label class="chk"><input id="dither" type="checkbox" checked> Floyd–Steinberg dither</label>
+          <canvas id="preview" class="preview" width="160" height="160"></canvas>
+          <p id="imgMeta" class="hint"></p>
+          <textarea id="imgText" class="morse" readonly rows="4" aria-label="PIXM1 frame"></textarea>
+          <button type="button" class="lt" id="copyFrame">COPY FRAME</button>
+          <details class="proto">
+            <summary>PIXM1 PROTOCOL</summary>
+            <p class="hint">On-air text is <code>PIXM1 WW HH</code>, then one word per row of <code>W</code>/<code>B</code> runs, then <code>C</code> plus a 6-digit checksum, then <code>END</code>. Width and height are two digits (<code>08</code>, <code>16</code>). Spaces can be stripped. <code>O</code> is read as <code>0</code> and <code>I</code> as <code>1</code> inside numbers. Paste the decoded letters on Receive to rebuild the picture. Full write-up is in the README.</p>
+          </details>
+        </section>
+        <section id="view-voice" class="view" hidden>
+          <label>SAY THIS
+            <textarea id="ttsText" maxlength="4000" placeholder="Radio check. One two three.">Radio check. This is Morse Radio.</textarea>
+          </label>
+          <label>VOICE
+            <select id="ttsVoice"></select>
+          </label>
+          <p id="voiceNote" class="hint">Voices come from this device. Hindi and English are listed first when the system has them.</p>
+          <div class="row">
+            <label>RATE <span id="rateV">1.00</span><input id="ttsRate" type="range" min="0.5" max="1.6" step="0.05" value="1"></label>
+            <label>PITCH <span id="pitchV">1.00</span><input id="ttsPitch" type="range" min="0.5" max="1.8" step="0.05" value="1"></label>
+          </div>
+          <p class="hint">Spoken with the browser’s built-in speechSynthesis. No cloud voice. The same PTT countdown runs before the words.</p>
+        </section>
+        <section id="view-rx" class="view" hidden>
+          <div class="submodes" role="tablist">
+            <button type="button" data-rx="paste" class="on">PASTE</button>
+            <button type="button" data-rx="cw">CW EAR</button>
+            <button type="button" data-rx="speech">VOICE</button>
+          </div>
+          <div id="rx-paste">
+            <label>DECODED TEXT OR MORSE
+              <textarea id="paste" rows="5" placeholder="Paste decoder output, or dots and dashes"></textarea>
+            </label>
+            <div id="pasteOut" class="morse"></div>
+            <div id="pastePics" class="pics"></div>
+            <p id="pasteMsg" class="hint"></p>
+          </div>
+          <div id="rx-cw" hidden>
+            <div class="row">
+              <label>ELEMENT HINT <span id="rxWpmV">18</span> WPM
+                <input id="rxWpm" type="range" min="5" max="40" step="1" value="18">
+              </label>
+              <label class="chk"><input id="autoWpm" type="checkbox" checked> Auto WPM</label>
+            </div>
+            <p id="cwLive" class="hint">Speed hint is the character speed. Farnsworth text is slower than this.</p>
+            <div id="cwOut" class="morse"></div>
+            <div id="cwPics" class="pics"></div>
+            <div class="row">
+              <button type="button" class="lt" id="decodeLast">DECODE LAST SIDETONE</button>
+              <button type="button" class="lt" id="clearCw">CLEAR</button>
+            </div>
+            <p class="hint">Listen with the radio’s speaker near this mic, or a padded cable into the mic jack. Set the tone in CW TX to the pitch you will hear. The sidetone check runs the last transmission through the same decoder, with no second radio.</p>
+          </div>
+          <div id="rx-speech" hidden>
+            <label>ENGINE
+              <select id="sttMode">
+                <option value="whisper">Whisper on this device</option>
+                <option value="webspeech">Web Speech API fallback</option>
+              </select>
+            </label>
+            <div class="row">
+              <label>MODEL
+                <select id="whisperModel">
+                  <option value="Xenova/whisper-tiny">tiny · faster</option>
+                  <option value="Xenova/whisper-base">base · clearer</option>
+                </select>
+              </label>
+              <label>LANGUAGE
+                <select id="whisperLang">
+                  <option value="">Auto</option>
+                  <option value="en" selected>English</option>
+                  <option value="hi">Hindi</option>
+                </select>
+              </label>
+            </div>
+            <button type="button" class="lt" id="recalBtn">RECALIBRATE SQUELCH</button>
+            <div id="speechOut" class="morse"></div>
+            <p class="hint">Whisper (transformers.js) downloads once from the public CDN, then runs in this browser. No key. Squelch waits for voice the way the Echo demo does. Web Speech is the fallback and may use your browser vendor’s recognizer.</p>
+          </div>
+        </section>
+        <section id="view-log" class="view" hidden>
+          <div class="row">
+            <button type="button" class="lt" id="exportJson">EXPORT JSON</button>
+            <button type="button" class="lt" id="exportZip">EXPORT ZIP</button>
+            <button type="button" class="lt" id="clearLog">CLEAR</button>
+          </div>
+          <p id="logCount" class="hint"></p>
+          <div id="logList"></div>
+        </section>
+      </div>
+      <div id="arm" class="arm" hidden role="alertdialog" aria-live="assertive" aria-label="Press PTT now">
+        <div class="armk" id="armk">PRESS PTT NOW</div>
+        <div class="armn" id="armn">3</div>
+        <div class="arms" id="arms">Hold the radio key. Sound starts at zero. Keep holding while the lamp says ON AIR.</div>
+      </div>
+    </div>
+    <div class="grille"></div>
+    <div class="keys">
+      <div class="ptt">
+        <button id="goBtn" type="button">TRANSMIT CW</button>
+        <button id="stopBtn" type="button" disabled>■ STOP</button>
+      </div>
+    </div>
+    <div class="one">Headphone out → radio mic. You key PTT by hand. No API keys. <button id="installBtn" type="button" hidden>Install</button></div>
+  </div>
+</div>
+<div class="modal" id="setModal">
+  <div class="panel">
+    <div class="ph"><span>⚙ SETTINGS</span><button class="gear" id="setClose" type="button" aria-label="Close">✕</button></div>
+    <div class="dw">
+      <label>TX TAIL <span id="tailV">0.6</span> s — ON AIR stays up after the sound
+        <input id="tail" type="range" min="0.4" max="3" step="0.1" value="0.6">
+      </label>
+      <label>CW EAR MARGIN <span id="cwMarginV">12</span> dB
+        <input id="cwMargin" type="range" min="6" max="24" step="1" value="12">
+      </label>
+      <label>VOICE SQUELCH MARGIN <span id="marV">9</span> dB
+        <input id="mar" type="range" min="4" max="20" step="1" value="9">
+      </label>
+      <label>VOICE HANG <span id="hangV">1.4</span> s
+        <input id="hang" type="range" min="0.6" max="3" step="0.1" value="1.4">
+      </label>
+      <div class="note"><b>Wiring.</b> Patch the device headphone jack into the radio mic or line input. A mic input is hot — a series resistor (about 1 kΩ) keeps it from overdriving. Set volume so the radio moves but does not flat-top. When the screen says PRESS PTT NOW, hold the radio PTT through ON AIR, then release. To receive, put the radio speaker by this mic, or a padded speaker-out into the mic jack. Match the CW tone to the pitch you hear. Nothing here keys the radio for you.</div>
+      <div class="note">Clips, pictures, and settings stay in this browser (IndexedDB and localStorage). Whisper weights cache in the browser after the first download. No account, no API key.</div>
+    </div>
+  </div>
+</div>
+<script type="module" src="js/app.js?v=6"></script>
+</body>
+</html>
